@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: swank-repl -*-
+;;; -*- mode: scheme; scheme48-package: swank-repl -*-
 
 ;;;;;; SLIME for Scheme48
 ;;;;;; Read-eval-print loop operations

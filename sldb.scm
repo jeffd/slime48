@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: swank-sldb -*-
+;;; -*- mode: scheme; scheme48-package: swank-sldb -*-
 
 ;;;;;; SLIME for Scheme48
 ;;;;;; SLDB (SLIME Debugger) back end

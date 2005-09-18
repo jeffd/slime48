@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: swank-sessions -*-
+;;; -*- mode: scheme; scheme48-package: swank-sessions -*-
 
 ;;;;;; SLIME for Scheme48
 ;;;;;; Swank sessions

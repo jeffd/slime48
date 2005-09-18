@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: (exec) -*-
+;;; -*- mode: scheme; scheme48-package: (exec) -*-
 
 ;;;;;; SLIME for Scheme48
 ;;;;;; Load script

@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: xvectors -*-
+;;; -*- mode: scheme; scheme48-package: xvectors -*-
 
 ;;;;;; SLIME for Scheme48
 ;;;;;; Expandable vectors

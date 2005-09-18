@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: swank-i/o -*-
+;;; -*- mode: scheme; scheme48-package: swank-i/o -*-
 
 ;;;;;; SLIME for Scheme48
 ;;;;;; Ports instrumented for I/O with a remote Swank system

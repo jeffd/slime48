@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: continuation-data-type -*-
+;;; -*- mode: scheme; scheme48-package: continuation-data-type -*-
 
 ;;;;;; Continuation data type, more general than CWCC escape procedures
 

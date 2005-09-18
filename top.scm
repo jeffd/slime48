@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: slime48 -*-
+;;; -*- mode: scheme; scheme48-package: slime48 -*-
 
 ;;;;;; SLIME for Scheme48
 ;;;;;; Primary entry points

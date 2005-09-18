@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: circular-writing -*-
+;;; -*- mode: scheme; scheme48-package: circular-writing -*-
 
 ;;;;;; SLIME for Scheme48
 ;;;;;; Circular writer utility (CL-style #n=... & #n#)

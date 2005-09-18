@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: swank-inspector -*-
+;;; -*- mode: scheme; scheme48-package: swank-inspector -*-
 
 ;;;;;; SLIME for Scheme48
 ;;;;;; Inspector

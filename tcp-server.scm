@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: swank-tcp-servers -*-
+;;; -*- mode: scheme; scheme48-package: swank-tcp-servers -*-
 
 ;;;;;; SLIME for Scheme48
 ;;;;;; Swank back end TCP server

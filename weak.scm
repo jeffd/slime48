@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: weak-utilities -*-
+;;; -*- mode: scheme; scheme48-package: weak-utilities -*-
 
 ;;;;;; Weak utilities for Scheme48: weak sets & tail-weak hash tables
 ;;;;;; (thread-safe sets, thread-unsafe tables)

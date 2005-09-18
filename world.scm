@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: swank-worlds -*-
+;;; -*- mode: scheme; scheme48-package: swank-worlds -*-
 
 ;;;;;; SLIME for Scheme48
 ;;;;;; Swank worlds: session collections & environment state

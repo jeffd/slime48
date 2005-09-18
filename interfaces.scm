@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: (config) -*-
+;;; -*- mode: scheme; scheme48-package: (config) -*-
 
 ;;;;;; SLIME for Scheme48
 ;;;;;; Interface definitions

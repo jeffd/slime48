@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: restarting -*-
+;;; -*- mode: scheme; scheme48-package: restarting -*-
 
 ;;;;;; Simple condition restart facility
 
