@@ -387,6 +387,7 @@
         extended-ports
         (subset i/o-internal (call-with-current-output-port))
         pp
+        circular-writing
         (subset display-conditions (limited-write))
         )
   (optimize auto-integrate)
@@ -403,12 +404,22 @@
          (define (display-to-string obj) (print-to-string obj display))
          (define (write-to-string   obj) (print-to-string obj write))
          (define (pp-to-string      obj) (print-to-string obj p))
+         (define (circular-write-to-string obj)
+           (print-to-string obj circular-write))
          (define (limited-write-to-string obj depth length)
            (call-with-string-output-port
              (lambda (port)
                (limited-write obj port depth length))))
          ;; (put 'limited-write-to-string 'scheme-indent-function 1)
          ))
+
+(define-structure circular-writing (export circular-write)
+  (open scheme
+        writing
+        i/o
+        )
+  (optimize auto-integrate)
+  (files circwrite))
 
 (define-structure destructure-case
     (export (destructure-case :syntax)

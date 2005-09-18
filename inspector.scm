@@ -160,7 +160,7 @@
 (define-method &inspect-object (obj)
   (values "An indeterminate object."
           'object
-          `(,(pp-to-string obj))))
+          `(,(circular-write-to-string obj))))
 
 (define-method &inspect-object ((obj :zero-values))
   (values "Zero return values."

@@ -55,7 +55,7 @@
 (define (sldb-restarter-listing)
   (map (lambda (restarter)
          (list (string-upcase           ; CL convention
-                (write-to-string (restarter-tag restarter)))
+                (circular-write-to-string (restarter-tag restarter)))
                (restarter-description restarter)))
        (sldb-restarters)))
 

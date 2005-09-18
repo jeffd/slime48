@@ -276,6 +276,7 @@
           display-to-string
           write-to-string
           pp-to-string
+          circular-write-to-string
           limited-write-to-string
           ))
 

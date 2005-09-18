@@ -36,7 +36,7 @@
                               ", #o" (number->string v 8)
                               ", #b" (number->string v 2)
                               ")")
-               (write-to-string v))))
+               (circular-write-to-string v))))
         (else
          (delimited-object-list-string results
                                        interactive-limited-write
@@ -79,7 +79,7 @@
       "; No value")
     (lambda (v)
       (record-swank-repl-result v)
-      (write-to-string v))
+      (circular-write-to-string v))
     (lambda (vals)
       (record-swank-repl-result vals)
       (delimited-object-list-string vals write newline))))
@@ -152,7 +152,7 @@
                                     package)))
                       (warn "package identification mismatch"
                             id package))
-                  (list id (write-to-string
+                  (list id (circular-write-to-string
                             (or name
                                 (package-uid package)))))))
           (else (abort-swank-rpc)))))
