@@ -26,8 +26,12 @@
       server)))
 
 (define (close-swank-tcp-server server)
-  (terminate-thread! (swank-tcp-server-thread server))
-  (close-socket (swank-tcp-server-socket server)))
+  (let ((socket (swank-tcp-server-socket server)))
+    (swank-log "(world ~S) Closing TCP server on port ~A"
+               (swank-world-id (swank-tcp-server-world server))
+               (socket-port-number socket))
+    (terminate-thread! (swank-tcp-server-thread server))
+    (close-socket socket)))
 
 (define (run-swank-tcp-server server session-wrapper)
   (let ((socket (swank-tcp-server-socket server))
