@@ -33,6 +33,9 @@
     (terminate-thread! (swank-tcp-server-thread server))
     (close-socket socket)))
 
+(define (swank-tcp-server-port-number server)
+  (socket-port-number (swank-tcp-server-socket server)))
+
 (define (run-swank-tcp-server server session-wrapper)
   (let ((socket (swank-tcp-server-socket server))
         (world (swank-tcp-server-world server)))

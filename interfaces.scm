@@ -74,6 +74,7 @@
           close-swank-tcp-server
           swank-tcp-server?
           swank-tcp-server-world
+          swank-tcp-server-port-number
           encode-swank-message
           decode-swank-message
           ))
