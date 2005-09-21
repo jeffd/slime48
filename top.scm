@@ -6,9 +6,9 @@
 ;;; This code is written by Taylor Campbell and placed in the Public
 ;;; Domain.  All warranties are disclaimed.
 
-(define (slime48 . port-number)
+(define (slime48 . port-opt)
   (let ((world (make-slime48-world)))
-    (values world (apply spawn-slime48-tcp-server world port-number))))
+    (values world (apply spawn-slime48-tcp-server world port-opt))))
 
 (define (make-slime48-world)
   (receive (scratch config rpc)
@@ -23,14 +23,25 @@
                       rpc
                       'slime48)))
 
-(define (spawn-slime48-tcp-server world . port-number)
-  (apply spawn-swank-tcp-server world
-         (lambda (session-placeholder body)
-           (with-sldb-handler #f
-             (lambda ()
-               (with-slime48-port-redirection session-placeholder
-                 body))))
-         port-number))
+(define (spawn-slime48-tcp-server world . port-opt)
+  (let ((server (apply spawn-swank-tcp-server world
+                       (lambda (session-placeholder body)
+                         (with-sldb-handler #f
+                           (lambda ()
+                             (with-slime48-port-redirection
+                                 session-placeholder
+                               body))))
+                       (if (and (pair? port-opt)
+                                (number? (car port-opt)))
+                           port-opt
+                           '()))))
+    (if (and (pair? port-opt)
+             (string? (car port-opt)))
+        (call-with-output-file (car port-opt)
+          (lambda (out)
+            (write (swank-tcp-server-port-number server)
+                   out))))
+    server))
 
 (define (with-slime48-port-redirection session-placeholder body)
   (call-with-current-output-port

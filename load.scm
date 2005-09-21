@@ -71,11 +71,14 @@
                 ;; Not sure whether the =slime48/ is necessary.
                 (files =slime48/top))))
 
-(define (slime48-start)
+(define (slime48-start . port-opt)
   (in 'slime48
-      '(run (begin (define slime48-world)
-                   (define slime48-tcp-server)
-                   (call-with-values slime48
-                     (lambda (world server)
-                       (set! slime48-world world)
-                       (set! slime48-tcp-server server)))))))
+      `(RUN (BEGIN (DEFINE SLIME48-WORLD)
+                   (DEFINE SLIME48-TCP-SERVER)
+                   (CALL-WITH-VALUES
+                       ,(if (pair? port-opt)
+                            `(LAMBDA () (SLIME48 ',(car port-opt)))
+                            'SLIME48)
+                     (LAMBDA (WORLD SERVER)
+                       (SET! SLIME48-WORLD WORLD)
+                       (SET! SLIME48-TCP-SERVER SERVER)))))))
