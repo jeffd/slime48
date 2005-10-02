@@ -6,7 +6,7 @@
 ;;; This code is written by Taylor Campbell and placed in the Public
 ;;; Domain.  All warranties are disclaimed.
 
-(config '(load "=slime48/defrectype*.scm"
+(config '(load "=slime48/defrectype.scm"
                "=slime48/interfaces.scm"
                "=slime48/packages.scm"))
 
