@@ -265,6 +265,30 @@
   (optimize auto-integrate)
   (files completion))
 
+(define-structure swank-apropos-rpc swank-apropos-rpc-interface
+  (open scheme
+        sort
+        destructuring
+        string-i/o
+        signals
+        (subset packages (structure? structure-package package-uid))
+        (subset packages-internal (for-each-definition
+                                   for-each-export
+                                   package-opens
+                                   structure-name))
+        meta-types
+        bindings
+        locations
+        (subset transforms (transform?))
+        (subset nodes (operator?))
+        posix-regexps
+        (subset swank-sessions (current-swank-world
+                                abort-swank-rpc))
+        swank-worlds
+        )
+  (optimize auto-integrate)
+  (files apropos))
+
 (define-structure swank-definition-finding-rpc
     swank-definition-finding-rpc-interface
   (open scheme)
@@ -292,6 +316,7 @@
   swank-inspector-rpc
   swank-arglist-rpc
   swank-completion-rpc
+  swank-apropos-rpc
   swank-definition-finding-rpc
   )
 

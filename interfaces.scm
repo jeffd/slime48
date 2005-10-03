@@ -192,6 +192,10 @@
           swank:list-all-package-names
           ))
 
+(define-interface swank-apropos-rpc-interface
+  (export swank:apropos-list-for-emacs
+          ))
+
 (define-interface swank-definition-finding-rpc-interface
   (export swank:find-definitions-for-emacs
           swank:buffer-first-change
