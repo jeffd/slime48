@@ -252,23 +252,18 @@
 
 (define-structure swank-completion-rpc swank-completion-rpc-interface
   (open scheme
+        receiving
+        (subset util (fold))
         string-i/o
-        swank-sessions
+        (subset packages-internal (for-each-definition
+                                   for-each-export
+                                   package-opens))
+        (subset swank-sessions (current-swank-world
+                                abort-swank-rpc))
         swank-worlds
         )
   (optimize auto-integrate)
-  (begin (define (swank:completions prefix package)
-           (list '() prefix))
-         (define (swank:simple-completions prefix package)
-           (list '() prefix))
-         (define (swank:fuzzy-completions prefix package)
-           '())
-         (define (swank:fuzzy-completion-selected orig completion)
-           '())
-         (define (swank:list-all-package-names include-nicknames?)
-           (map write-to-string
-                (swank-world-package-names (current-swank-world))))
-         ))
+  (files completion))
 
 (define-structure swank-definition-finding-rpc
     swank-definition-finding-rpc-interface
