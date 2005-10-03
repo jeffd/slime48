@@ -123,10 +123,10 @@
   (modify-swank-repl-presentations?!
    (lambda (x)
      (cond (x
-            (set-swank-repl-presentations! (make-weak-table))
+            (set-swank-repl-presentations! #f)
             #f)
            (else
-            (set-swank-repl-presentations! #f)
+            (set-swank-repl-presentations! (make-weak-table))
             #t)))))
 
 (define (swank:get-repl-result id)
