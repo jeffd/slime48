@@ -60,6 +60,7 @@
                (char? obj)
                (symbol? obj)
                (eof-object? obj)
+               (null? obj)
                (assq obj shared))))
 
     (define (share obj)
