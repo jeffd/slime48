@@ -17,7 +17,7 @@
                                       package-spec)
   (let ((matches? (apropos-matcher string case-sensitive?))
         (world (current-swank-world)))
-    (cond ((or (not (eq? all? 'nil))
+    (cond ((or all?
                (eq? package-spec 'nil))
            (apropos-all (swank-world-config-env world) matches?))
           ((find-package-in-swank-world
