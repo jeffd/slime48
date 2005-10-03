@@ -41,7 +41,7 @@
     (if (maybe-commit)
         (begin (send-outgoing-swank-message
                    (placeholder-value (port-data port))
-                 `(:READ-OUTPUT ,string))
+                 `(:WRITE-STRING ,string))
                #t)
         #f)))
 
