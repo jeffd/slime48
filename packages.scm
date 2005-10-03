@@ -156,6 +156,7 @@
         packages
         (subset packages-internal (package-name))
         (subset environments (set-interaction-environment!))
+        (subset module-control (package-open!))
         swank-sessions
         swank-worlds
         )

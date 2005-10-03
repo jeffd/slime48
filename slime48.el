@@ -69,3 +69,9 @@
               (interactive)
               (slime-repl-set-package "(config)")))
   (:one-liner "Change to the config package for module definitions."))
+
+(defslime-repl-shortcut slime-repl-use-package ("use-package" "use")
+  (:handler (lambda (package)
+              (interactive (list (slime-read-package-name "Package: ")))
+              (slime-eval-async `(swank:use-package ',package))))
+  (:one-liner "Use a package in the current interaction."))

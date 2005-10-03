@@ -118,6 +118,7 @@
           swank:re-evaluate-defvar            ;(*)
           swank:pprint-eval
           swank:set-package
+          swank:use-package
           swank:listener-eval
           swank:get-repl-result
           swank:clear-repl-results

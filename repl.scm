@@ -186,3 +186,15 @@
                             (or name
                                 (package-uid package)))))))
           (else (abort-swank-rpc)))))
+
+(define (swank:use-package string)
+  (let ((id (read-from-string string))
+        (world (current-swank-world)))
+    (cond ((find-structure-in-swank-world id world)
+           (package-open! (interaction-environment)
+                          (lambda ()
+                            ;; Don't eagerly cache the value, because
+                            ;; it may change during development.
+                            (find-structure-in-swank-world id world)))
+           'nil)
+          (else (abort-swank-rpc)))))
