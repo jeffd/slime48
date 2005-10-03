@@ -36,7 +36,12 @@
     '(structure config-package (export config-package)))
 
 ;;; Set up the #. reader macro so that presentations can work.  This
-;;; should be done in a better way, e.g. MIT Scheme's #@n device.
+;;; should be done in a better way, e.g. MIT Scheme's #@n device.  It
+;;; should also really not affect the reader globally, but Scheme48
+;;; unfortunately has a very primitive reader with no customizable
+;;; readtable mechanism or anything.  If there were one, or if one be
+;;; introduced, this global hack should be replaced by something that
+;;; uses it.
 
 (new-package)
 (open 'reading 'swank-structures 'packages)
