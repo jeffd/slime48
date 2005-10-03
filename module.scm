@@ -111,32 +111,3 @@
 
 (define (package-reflective-tower package)
   (environment-macro-eval (package->environment package)))
-
-(define (package-open! package struct-thunk)
-  (if (not (memq (struct-thunk)
-                 (package-opens package)))
-      (let ((old-thunk (package-opens-thunk package)))
-        (set-package-opens-thunk! package
-                                  (lambda ()
-                                    (cons (struct-thunk)
-                                          (old-thunk))))
-        ;; Recompute the now invalidated cached list, if it is there.
-        (if (package-opens-really package)
-            (initialize-package! package))
-;;;     (verify-package package)        ;++ Implement package mutation.
-        )))
-
-(define (package-undefine! package name)
-  (let ((definitions (package-definitions package)))
-    (cond ((table-ref definitions name)
-           => (lambda (binding)
-                (table-set! definitions name #f)
-                (let ((location (binding-place binding)))
-                  (set-location-defined?! location #f)
-                  ;++ Implement mutation semantics.
-;;;               (set-location-forward! location ...)
-                  )))
-          ((package-lookup package name)
-           (warn "can't undefine inherited binding"))
-          (else
-           (warn "can't undefine nonexistent binding")))))

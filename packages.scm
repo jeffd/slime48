@@ -322,6 +322,7 @@
         locations
         (subset meta-types (syntax-type))
         (subset names (name?))
+        package-mutation
         package-loader
         )
   (optimize auto-integrate)
