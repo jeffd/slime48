@@ -35,6 +35,17 @@
 (in 'package-commands-internal
     '(structure config-package (export config-package)))
 
+;;; Set up the #. reader macro so that presentations can work.  This
+;;; should be done in a better way, e.g. MIT Scheme's #@n device.
+
+(new-package)
+(open 'reading 'swank-structures 'packages)
+(run '(define-sharp-macro #\.
+        (lambda (char port)
+          (read-char port)
+          (eval (read port) (structure-package swank-rpc)))))
+(user)
+
 (config '(run (define-structure slime48
                   (export slime48
                           make-slime48-world

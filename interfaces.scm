@@ -102,10 +102,10 @@
   (export repl-eval-string
           repl-eval-string*
           delimited-object-list-string  ; This should go elsewhere.
-          record-swank-repl-results?
-          enable-swank-repl-recording
-          disable-swank-repl-recording
-          toggle-swank-repl-recording
+          swank-repl-presentations?
+          enable-swank-repl-presentations
+          disable-swank-repl-presentations
+          toggle-swank-repl-presentations
           ))
 
 (define-interface swank-repl-rpc-interface
@@ -120,7 +120,6 @@
           swank:set-package
           swank:listener-eval
           swank:get-repl-result
-          swank:clear-last-repl-result
           swank:clear-repl-results
           ))
 
@@ -167,6 +166,7 @@
 
 (define-interface swank-inspector-rpc-interface
   (export swank:init-inspector
+          swank:inspector-reinspect
           swank:inspect-nth-part
           swank:inspector-nth-part
           swank:call-nth-action         ;(*)

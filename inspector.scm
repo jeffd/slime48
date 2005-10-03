@@ -13,7 +13,7 @@
 
 (define-record-type* inspector
   (make-inspector (object))
-  (parts         ; initialized by REINSPECT-OBJECT
+  (parts         ; initialized by SWANK:INSPECTOR-REINSPECT
    (stack '())
    (history (let ((history (make-xvector)))
               (xvector-push! history object)
@@ -58,8 +58,7 @@
   ())
 
 (define (swank:init-inspector exp-string)
-  (call-with-values (lambda () (repl-eval-string exp-string))
-    inspect-results))
+  (inspect-results (repl-eval-string exp-string)))
 
 (define (swank:inspector-nth-part n)
   (xvector-ref (current-inspector-parts) n))
@@ -76,7 +75,7 @@
              (set-current-inspector-position!
               (xvector-index (current-inspector-history)
                              obj)))
-           (reinspect-object))
+           (swank:inspector-reinspect))
           (else 'nil))))
 
 (define (swank:inspector-next)
@@ -92,9 +91,9 @@
 
 (define (inspect-object obj)
   (set-current-inspector! (make-inspector obj))
-  (reinspect-object))
+  (swank:inspector-reinspect))
 
-(define (inspect-results . results)
+(define (inspect-results results)
   (inspect-object (cond ((null? results)
                          (zero-values))
                         ((null? (cdr results))
@@ -109,9 +108,9 @@
   (set-current-inspector-position!
    (xvector-maybe-push! (current-inspector-history) obj))
   (set-current-inspector-object! obj)
-  (reinspect-object))
+  (swank:inspector-reinspect))
 
-(define (reinspect-object)
+(define (swank:inspector-reinspect)
   (receive (title type listing)
            (really-inspect-object (current-inspector-object))
     (receive (contents parts)
@@ -301,7 +300,7 @@
                  'proper-list
                  `("Length: " (1) ,newline
                    "Contents:" ,newline
-                   0 ,(car pair) ,newline)))
+                   0 (,(car pair)) ,newline)))
         ((pair? (cdr pair))
          (inspect-list pair))
         (else

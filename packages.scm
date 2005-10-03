@@ -153,6 +153,8 @@
         (subset display-conditions (limited-write))
         pp
         simple-signals
+        weak-utilities
+        reduce
         packages
         (subset packages-internal (package-name))
         (subset environments (set-interaction-environment!))

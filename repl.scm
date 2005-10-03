@@ -9,25 +9,26 @@
 (define (repl-eval-string string)
   (let ((exp (read-from-string string)))
     (if (eof-object? exp)
-        (values)
+        #f
         (receive results (eval exp (interaction-environment))
           (force-output (current-output-port))
-          (apply values results)))))
+          results))))
 
-(define (repl-eval-string* string zero one many)
-  (receive results (repl-eval-string string)
-    (cond ((null?      results)  (zero))
+(define (repl-eval-string* string nothing zero one many)
+  (let ((results (repl-eval-string string)))
+    (cond ((not        results)  (nothing))
+          ((null?      results)  (zero))
           ((null? (cdr results)) (one (car results)))
           (else                  (many results)))))
 
 ; (put 'repl-eval-string* 'scheme-indent-function 1)
 
 (define (swank:interactive-eval string)
-  (receive results (repl-eval-string string)
-    (interactive-eval-results results)))
+  (interactive-eval-results (repl-eval-string string)))
 
 (define (interactive-eval-results results)
-  (cond ((null? results) "; No value")
+  (cond ((not   results) "; Nothing to evaluate")
+        ((null? results) "; No value")
         ((null? (cdr results))
          (let ((v (car results)))
            (if (integer? v)
@@ -48,7 +49,7 @@
       (let ((exp (read port)))
         (if (eof-object? exp)
             (cond (results => interactive-eval-results)
-                  (else "; No value"))
+                  (else "; Nothing to evaluate"))
             (receive results (eval exp (interaction-environment))
               (loop results)))))))
 
@@ -61,70 +62,99 @@
   (let ((port (make-string-output-port)))
     (call-with-current-output-port port
       (lambda ()
-        (receive vals (repl-eval-string string)
-          (list (string-output-port-output port)
-                (delimited-object-list-string vals write newline)))))))
+        (cond ((repl-eval-string string)
+               => (lambda (vals)
+                    (list (string-output-port-output port)
+                          (delimited-object-list-string vals write
+                                                        newline))))
+              (else (list "" "; Nothing to evaluate")))))))
 
 (define (swank:pprint-eval string)
   (repl-eval-string* string
+    (lambda () "; Nothing to evaluate")
     (lambda () "; No value")
     (lambda (v) (pp-to-string v))
     (lambda (vals)
       (delimited-object-list-string vals p ""))))
 
 (define (swank:listener-eval string)
-  (repl-eval-string* string
-    (lambda ()
-      (record-swank-repl-result '())
-      "; No value")
-    (lambda (v)
-      (record-swank-repl-result v)
-      (circular-write-to-string v))
-    (lambda (vals)
-      (record-swank-repl-result vals)
-      (delimited-object-list-string vals write newline))))
+  (cond ((repl-eval-string string)
+         => (lambda (results)
+              (if (swank-repl-presentations?)
+                  (repl-present results)
+                  `(:VALUES ,(map circular-write-to-string results)))))
+        (else '(:SUPPRESS-OUTPUT))))
 
-(define-swank-session-slot record-swank-repl-results?
-  set-record-swank-repl-results?!
-  modify-record-swank-repl-results?!
-  #t)
+(define (repl-present results)
+  (let ((table (swank-repl-presentations)))
+    (reduce ((list* result results))
+        ((id (swank-repl-presentation-id))
+         (presentations '()))
+      (begin (weak-table-set! table id (canonicalize-false result))
+             (values (+ id 1)
+                     `((,(circular-write-to-string result)
+                        . ,id)
+                       ,@presentations)))
+      (begin (set-swank-repl-presentation-id! id)
+             `(:PRESENT ,(reverse presentations))))))
 
-(define (enable-swank-repl-recording)
-  (set-record-swank-repl-results?! #t))
-(define (disable-swank-repl-recording)
-  (set-record-swank-repl-results?! #f))
-(define (toggle-swank-repl-recording)
-  (modify-record-swank-repl-results?! not))
+(define-swank-session-slot swank-repl-presentation-id
+  set-swank-repl-presentation-id!
+  modify-swank-repl-presentation-id!
+  0)
 
-(define-swank-session-slot swank-repl-results
-  set-swank-repl-results!
-  modify-swank-repl-results!
-  '())
+(define-swank-session-slot swank-repl-presentations
+  set-swank-repl-presentations!
+  modify-swank-repl-presentations!
+  #f)
 
-(define (record-swank-repl-result result)
-  (cond ((and (record-swank-repl-results?)
-              (current-swank-return-tag))
-         => (lambda (return-tag)
-              (modify-swank-repl-results!
-               (lambda (results)
-                 (cons (cons return-tag result) results)))))))
+(define-swank-session-slot swank-repl-presentations?
+  set-swank-repl-presentations?!
+  modify-swank-repl-presentations?!
+  #f)
 
-(define (swank:get-repl-result return-tag)
-  (cond ((not (record-swank-repl-results?))
-         (error "Swank REPL results not being recorded"
-                `(GET-REPL-RESULT ,return-tag)))
-        ((assv return-tag (swank-repl-results))
-         => cdr)
+(define (enable-swank-repl-presentations)
+  (set-swank-repl-presentations?! #t)
+  (set-swank-repl-presentations! (make-weak-table)))
+(define (disable-swank-repl-presentations)
+  (set-swank-repl-presentations?! #f)
+  (set-swank-repl-presentations! #f))
+(define (toggle-swank-repl-presentations)
+  (modify-swank-repl-presentations?!
+   (lambda (x)
+     (cond (x
+            (set-swank-repl-presentations! (make-weak-table))
+            #f)
+           (else
+            (set-swank-repl-presentations! #f)
+            #t)))))
+
+(define (swank:get-repl-result id)
+  (cond ((not (swank-repl-presentations?))
+         (error "Swank REPL presentations disabled"
+                `(GET-REPL-RESULT ,id)))
+        ((weak-table-ref (swank-repl-presentations) id)
+         => decanonicalize-false)
         (else
-         (error "Swank REPL result no longer exists"
-                `(GET-REPL-RESULT ,return-tag)))))
+         (error "Swank REPL presentation no longer exists"
+                `(GET-REPL-RESULT ,id)))))
 
-(define (swank:clear-last-repl-result)
-  (modify-swank-repl-results! cdr)
-  't)
+(define canonicalize-false)
+(define decanonicalize-false)
+(let ((false-token (list 'false)))
+  (set! canonicalize-false
+        (lambda (x)
+          (or x false-token)))
+  (set! decanonicalize-false
+        (lambda (x)
+          (if (eq? x false-token)
+              #f
+              x))))
 
 (define (swank:clear-repl-results)
-  (set-swank-repl-results! '())
+  (set-swank-repl-presentations! (if (swank-repl-presentations?)
+                                     (make-weak-table)
+                                     #f))
   't)
 
 (define (delimited-object-list-string vals write delimiter)
