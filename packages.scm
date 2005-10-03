@@ -117,13 +117,11 @@
   (open scheme
         (subset posix-files (working-directory
                              set-working-directory!))
-        (subset posix-process-data (get-process-id))
-        (subset posix-processes (process-id->integer))
         swank-sessions
         )
   (optimize auto-integrate)
   (begin (define (swank:connection-info)
-           (list (process-id->integer (get-process-id))
+           (list 0                      ; process id (unnecessary)
                  "Scheme48"             ; Lisp implementation type
                  "scheme48"             ; symbolic name for the above
                  '()                    ; empty features list
