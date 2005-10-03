@@ -1,4 +1,4 @@
-;;; -*- mode: scheme48; package: module-control -*-
+;;; -*- mode: scheme; scheme48-package: module-control -*-
 
 ;;;;;; Programmatic module system control utilities
 
