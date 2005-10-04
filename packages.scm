@@ -28,7 +28,6 @@
         destructure-case
         destructuring
         receiving
-        srfi-2                          ;and-let*
         value-pipes
         placeholders                    ; for input requests
         locks                           ; for input request table
@@ -40,17 +39,13 @@
         handle
         restarting
         restarting-hooks
-        display-conditions
-        (subset i/o (force-output current-error-port
-                                  current-noise-port))
-        string-i/o
+        (subset string-i/o (read-from-string))
         continuation-data-type
         fluids fluids-internal
         threads threads-internal
         scheduler
         queues
-        (subset environments (interactive-environment
-                              with-interaction-environment
+        (subset environments (with-interaction-environment
                               set-interaction-environment!))
         swank-logging
         swank-worlds
@@ -62,7 +57,7 @@
   (open scheme
         receiving
         define-record-type*
-        signals
+        simple-signals
         i/o
         i/o-internal
         ports
@@ -90,9 +85,7 @@
         ascii
         bitwise
         (subset i/o (write-string read-block force-output))
-        (subset i/o-internal (call-with-current-output-port
-                              call-with-current-input-port))
-        string-i/o
+        (subset string-i/o (read-from-string write-to-string))
         swank-worlds
         swank-sessions
         swank-sldb
@@ -143,7 +136,6 @@
                     (swank-repl-rpc swank-repl-rpc-interface))
   (open scheme
         receiving
-        formats
         string-i/o
         (subset i/o (write-string force-output
                      call-with-current-output-port))
@@ -182,15 +174,13 @@
         (subset vm-exposure (primitive-catch))  ; To filter out useless
         (subset closures (closure-template))    ; continuation frames
         loopholes                               ; in backtraces.
-        (subset templates (template? template-debug-data
-                                     template-package-id))
-        (subset disclosers (template-debug-data
-                            debug-data-names))
+        (subset templates (template? template-package-id))
+        (subset disclosers (template-debug-data debug-data-names))
         debug-data
         (subset names (generated? generated-name generated-uid
                                   name->symbol))
         (subset module-control (uid->package))
-        (subset packages (structure-package package-uid))
+        (subset packages (structure-package))
         (subset packages-internal (package-file-name
                                    package-clauses))
         filenames                       ; for source location stuff
@@ -256,7 +246,7 @@
   (open scheme
         receiving
         (subset util (fold))
-        string-i/o
+        (subset string-i/o (write-to-string read-from-string))
         (subset packages-internal (for-each-definition
                                    for-each-export
                                    package-opens))
@@ -272,7 +262,7 @@
         sort
         destructuring
         string-i/o
-        signals
+        simple-signals
         (subset packages (structure? structure-package package-uid))
         (subset packages-internal (for-each-definition
                                    for-each-export
@@ -331,12 +321,10 @@
   (open scheme
         srfi-2                          ;and-let*
         simple-signals
-        simple-conditions
-        display-conditions
+        (subset simple-conditions (make-vm-exception))
         enumerated
         (subset architecture (op exception))
         (subset primitives (find-all-records))
-        tables
         (subset i/o (silently))
         packages packages-internal
         (subset compiler-envs (environment-macro-eval))
