@@ -58,7 +58,9 @@
   ())
 
 (define (swank:init-inspector exp-string)
-  (inspect-results (repl-eval-string exp-string)))
+  (cond ((repl-eval-string exp-string)
+         => inspect-results)
+        (else (abort-swank-rpc))))
 
 (define (swank:inspector-nth-part n)
   (xvector-ref (current-inspector-parts) n))

@@ -224,11 +224,13 @@
     var-number)))
 
 (define (swank:inspect-in-frame string n)
-  (call-with-values (lambda () (eval-in-frame n string))
-    inspect-results))
+  (cond ((eval-in-frame n string)
+         => inspect-results)
+        (else (abort-swank-rpc))))
 
 (define (swank:eval-string-in-frame string n)
   (eval-in-frame* n string
+    (lambda () "; Nothing to evaluate")
     (lambda () "; No values")
     (lambda (v)
       (sldb-limited-write-to-string v))
@@ -237,14 +239,16 @@
 
 (define (swank:pprint-eval-string-in-frame string n)
   (eval-in-frame* n string
+    (lambda () "; Nothing to evaluate")
     (lambda () "; No values")
     (lambda (v) (pp-to-string v))
     (lambda (vals)
       (delimited-object-list-string vals p ""))))
 
-(define (eval-in-frame* n string zero one many)
-  (receive results (eval-in-frame n string)
-    (cond ((null? results) (zero))
+(define (eval-in-frame* n string nothing zero one many)
+  (let ((results (eval-in-frame n string)))
+    (cond ((not results) (nothing))
+          ((null? results) (zero))
           ((null? (cdr results)) (one (car results)))
           (else (many results)))))
 
@@ -252,15 +256,18 @@
   (call-with-sldb-frame n
     (lambda () (repl-eval-string string))
     (lambda (frame ddata pc)
-      (*eval-in-frame string frame ddata pc))))
+      (let ((exp (read-from-string string)))
+        (if (eof-object? exp)
+            #f
+            (receive results (*eval-in-frame exp frame ddata pc)
+              results))))))
 
 ; (put 'eval-in-frame 'scheme-indent-function 2)
 
-(define (*eval-in-frame string frame ddata pc)
+(define (*eval-in-frame exp frame ddata pc)
   (let ((bindings (filter (lambda (x) (and (car x) #t))
                           (frame-locals-list frame ddata
-                                             make-local-binding)))
-        (exp (read-from-string string)))
+                                             make-local-binding))))
     (eval (if (pair? bindings)
               `((,operator/lambda ,(map car bindings)
                   ,exp)
