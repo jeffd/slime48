@@ -136,7 +136,7 @@
 
 (define (postprocess-result result)
   (destructure (((id exported-type binding msg struct) result))
-    `(:designator
+    `(:DESIGNATOR
       ,(if (and msg struct)
            (string-append (write-to-string id)
                           " (" msg " " (write-to-string struct)
@@ -154,8 +154,8 @@
 (define (syntactic-binding id binding)
   (let* ((static (binding-static binding))
          (win (lambda (type) `(,type ,(write-to-string static)))))
-    (cond ((transform? static) (win ':macro))
-          ((operator?  static) (win ':special-operator))
+    (cond ((transform? static) (win ':MACRO))
+          ((operator?  static) (win ':SPECIAL-OPERATOR))
           (else (warn "funny syntactic binding"
                       id binding)
                 '()))))
@@ -163,8 +163,8 @@
 (define (variable-binding id binding type)
   `(,@(if (eq? type value-type)
           '()
-          `(:type ,(write-to-string (type->sexp type #t))))
-    :variable ,(let ((loc (binding-place binding)))
+          `(:TYPE ,(write-to-string (type->sexp type #t))))
+    :VARIABLE ,(let ((loc (binding-place binding)))
                  (if (location? loc)
                      (cond ((location-assigned? loc)
                             (limited-write-to-string (contents loc)
