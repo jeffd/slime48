@@ -285,6 +285,91 @@
   template-ref template-length
   (lambda (t i) #f))
 
+;;; Byte vectors we display very fancily.
+
+(define-method &inspect-object ((bytev :code-vector))
+  (values "A byte vector."
+          'byte-vector
+          (let ((len (byte-vector-length bytev)))
+            `("Length: " (,len . ,(string-append
+                                          (number->string len 10)
+                                   " (#b" (number->string len 2)
+                                   ", #o" (number->string len 8)
+                                   ", #x" (number->string len 16)
+                                   ")")) ,newline
+              "Contents:"
+              ,@(if (< len 16)
+                    (reduce ((count* i 0 len))
+                        ((items '()))
+                      (append-reverse `(,newline ,i
+                                        ,(string-pad
+                                          (number->string
+                                           (byte-vector-ref bytev i)
+                                           16)
+                                          2
+                                          #\0))
+                                      items)
+                      (reverse items))
+                    (byte-vector-inspector-listing bytev))))))
+
+(define (byte-vector-inspector-listing bytev)
+  (let* ((len (byte-vector-length bytev))
+         (hex-len (- (string-length (number->string len 16))
+                     1)))
+    (append-reverse
+     ;; Build something like:
+     ;;       0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
+     (reduce ((count* i 0 16))
+         ((headers (list (make-string (+ 3 hex-len) #\space)
+                         newline)))
+       (cons (string-append "  "
+                            (number->string i 16))
+             headers)
+       (cons newline headers))
+     (byte-vector-contents-listing bytev len hex-len))))
+
+(define (byte-vector-contents-listing bytev len hex-len)
+  (let outer-loop ((i 0) (contents '()))
+    (let ((j (+ i 16)))
+      (let inner-loop
+          ((i i)
+           (contents (cons* ":"
+                            (string-pad (number->string
+                                         (quotient i 16)
+                                         16)
+                                        hex-len
+                                        #\0)
+                            "  "
+                            contents)))
+        (cond ((= i len)
+               (reverse (if (= i j) (cons newline contents) contents)))
+              ((= i j)
+               (outer-loop j (cons newline contents)))
+              (else
+               (inner-loop
+                (+ i 1)
+                (cons* (let ((byte (byte-vector-ref bytev i)))
+                         (cons byte
+                               (string-pad (number->string byte
+                                                           16)
+                                           2
+                                           #\0)))
+                       " "
+                       contents))))))))
+
+(define (cons* first . rest)
+  (let recur ((x first) (rest rest))
+    (if (pair? rest)
+        (cons x (recur (car rest) (cdr rest)))
+        x)))
+
+(define (string-pad string width pad-char)
+  (let ((len (string-length string)))
+    (if (< len width)
+        (string-append (make-string (- width len) pad-char)
+                       string)
+        string)))
+
 
 
 ;;; Pairs & lists

@@ -229,6 +229,7 @@
         weak
         cells
         templates
+        byte-vectors
         )
   (optimize auto-integrate)
   (files inspector))
