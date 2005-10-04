@@ -117,7 +117,7 @@
                                     (k "Unable to display condition")
                                     (punt)))
                   (lambda ()
-                    (sldb-limited-write-to-string condition)))
+                    (limited-write-to-string condition)))
                 (punt)))
         (lambda ()
           (call-with-string-output-port
@@ -233,9 +233,9 @@
     (lambda () "; Nothing to evaluate")
     (lambda () "; No values")
     (lambda (v)
-      (sldb-limited-write-to-string v))
+      (limited-write-to-string v))
     (lambda (vals)
-      (delimited-object-list-string vals sldb-limited-write ","))))
+      (delimited-object-list-string vals limited-write ","))))
 
 (define (swank:pprint-eval-string-in-frame string n)
   (eval-in-frame* n string
@@ -303,11 +303,11 @@
                   ;; out here manually.
                   (name->symbol (generated-name name)))
                  (else                  ; bizarre name
-                  (sldb-limited-write-to-string name)))
+                  (limited-write-to-string name)))
     :ID ,(if (generated? name)
              (generated-uid name)
              0)
-    :VALUE ,(sldb-limited-write-to-string value)))
+    :VALUE ,(limited-write-to-string value)))
 
 (define (frame-locals-list frame ddata make-frame-local)
   (*frame-locals-list (let ((arg-count (continuation-arg-count frame)))
@@ -408,7 +408,7 @@
          => (lambda (source-info)
               (receive (exp index parent cwv?)
                        (destructure-source-info source-info)
-                `(:SNIPPET ,(sldb-limited-write-to-string exp)
+                `(:SNIPPET ,(limited-write-to-string exp)
                   ,@(if parent
                         `(:CALL-SITE ,(symbol->string (car parent)))
                         '())))))
@@ -560,11 +560,11 @@
          => (lambda (source-info)
               (receive (exp index parent cwv?)
                        (destructure-source-info source-info)
-                (sldb-limited-write exp port)
+                (limited-write exp port)
                 (cond ((and index parent)
                        (newline port)
                        (display "      Waiting for: " port)
-                       (sldb-limited-write
+                       (limited-write
                         (append (take index parent)
                                 (if cwv?
                                     '((LAMBDA () ^^^))
@@ -620,17 +620,6 @@
 
 
 ;;; Random
-
-(define (sldb-limited-write obj port)
-  (limited-write obj port (sldb-print-depth) (sldb-print-length)))
-
-(define (sldb-limited-write-to-string obj)
-  (limited-write-to-string obj
-    (sldb-print-depth)
-    (sldb-print-length)))
-
-(define (sldb-print-depth)  4)
-(define (sldb-print-length) 5)
 
 (define (filter pred list)              ; reversing filter
   (let loop ((in list) (out '()))

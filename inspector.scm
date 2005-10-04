@@ -137,9 +137,7 @@
               (destructure (( (obj . printed) item))
                 `(:VALUE ,(if (string? printed)
                               printed
-                              (limited-write-to-string obj
-                                (inspector-depth)
-                                (inspector-length)))
+                              (limited-write-to-string obj))
                          ,(xvector-push! parts obj))))
              (else
               (error "invalid inspection listing item"
@@ -480,10 +478,7 @@
 
 
 
-;;; Random utilities & parameters
-
-(define (inspector-depth) 4)
-(define (inspector-length) 5)
+;;; Random utilities
 
 (define (append-reverse list tail)
   (if (null? list)

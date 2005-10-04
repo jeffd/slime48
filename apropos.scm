@@ -167,14 +167,9 @@
     :VARIABLE ,(let ((loc (binding-place binding)))
                  (if (location? loc)
                      (cond ((location-assigned? loc)
-                            (limited-write-to-string (contents loc)
-                              (apropos-print-depth)
-                              (apropos-print-length)))
+                            (limited-write-to-string (contents loc)))
                            ((location-defined? loc)
                             "[unassigned]")
                            (else
                             "[undefined]"))
                      "[funny binding]"))))
-
-(define (apropos-print-depth) 2)
-(define (apropos-print-length) 3)

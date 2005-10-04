@@ -347,6 +347,14 @@
           limited-write-to-string
           ))
 
+(define-interface limited-writing-interface
+  (export limited-write
+          write-depth  set-write-depth!
+          write-length set-write-length!
+          with-limited-output
+          saving-output-limits
+          ))
+
 (define-interface continuation-data-type-interface
   (export reify-continuation
           continuation?

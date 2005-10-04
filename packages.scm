@@ -140,7 +140,7 @@
         (subset i/o (write-string force-output
                      call-with-current-output-port))
         (subset i/o-internal (call-with-current-output-port))
-        (subset display-conditions (limited-write))
+        limited-writing
         pp
         simple-signals
         weak-utilities
@@ -164,11 +164,12 @@
         simple-signals
         handle
         simple-conditions
-        display-conditions
+        (subset display-conditions (display-condition))
         restarting
         threads
         threads-internal
         string-i/o
+        limited-writing
         pp
         continuations
         (subset vm-exposure (primitive-catch))  ; To filter out useless
@@ -401,7 +402,7 @@
         (subset i/o-internal (call-with-current-output-port))
         pp
         circular-writing
-        (subset display-conditions (limited-write))
+        limited-writing
         )
   (optimize auto-integrate)
   (begin (define (with-output-to-string thunk)
@@ -419,11 +420,8 @@
          (define (pp-to-string      obj) (print-to-string obj p))
          (define (circular-write-to-string obj)
            (print-to-string obj circular-write))
-         (define (limited-write-to-string obj depth length)
-           (call-with-string-output-port
-             (lambda (port)
-               (limited-write obj port depth length))))
-         ;; (put 'limited-write-to-string 'scheme-indent-function 1)
+         (define (limited-write-to-string obj)
+           (print-to-string obj limited-write))
          ))
 
 (define-structure circular-writing (export circular-write)
@@ -433,6 +431,17 @@
         )
   (optimize auto-integrate)
   (files circwrite))
+
+(define-structure limited-writing limited-writing-interface
+  (open scheme
+        (modify display-conditions
+                (prefix s48-)
+                (expose limited-write))
+        fluids
+        cells
+        )
+  (optimize auto-integrate)
+  (files limwrite))
 
 (define-structure destructure-case
     (export (destructure-case :syntax)

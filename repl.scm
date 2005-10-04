@@ -40,7 +40,7 @@
                (circular-write-to-string v))))
         (else
          (delimited-object-list-string results
-                                       interactive-limited-write
+                                       limited-write
                                        ", "))))
 
 (define (swank:interactive-eval-region string)
@@ -52,11 +52,6 @@
                   (else "; Nothing to evaluate"))
             (receive results (eval exp (interaction-environment))
               (loop results)))))))
-
-(define (interactive-limited-write obj port)
-  (limited-write obj port (repl-print-depth) (repl-print-length)))
-(define (repl-print-depth) 3)
-(define (repl-print-length) 4)
 
 (define (swank:eval-and-grab-output string)
   (let ((port (make-string-output-port)))
