@@ -264,7 +264,7 @@
 
 
 ;;; ----------------
-;;; Internal facilities that might be useful elsewherea
+;;; Internal facilities that might be useful elsewhere
 
 (define-interface module-control-interface
   (export make-config-package
