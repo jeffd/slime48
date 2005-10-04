@@ -119,6 +119,7 @@
           swank:pprint-eval
           swank:set-package
           swank:use-package
+          swank:undefine-function
           swank:listener-eval
           swank:get-repl-result
           swank:clear-repl-results
@@ -152,6 +153,7 @@
           swank:inspect-in-frame
           swank:inspect-current-condition
           swank:inspect-frame-var
+          swank:sldb-break
           ))
 
 (define-interface swank-inspector-interface
@@ -170,11 +172,11 @@
           swank:inspector-reinspect
           swank:inspect-nth-part
           swank:inspector-nth-part
-          swank:call-nth-action         ;(*)
+          swank:inspector-call-nth-action ;(*)
           swank:inspector-pop
           swank:inspector-next
           swank:quit-inspector
-          swank:describe-inspectee
+          swank:describe-inspectee        ;(*)
           ))
 
 (define-interface swank-arglist-rpc-interface
@@ -199,6 +201,64 @@
 (define-interface swank-definition-finding-rpc-interface
   (export swank:find-definitions-for-emacs
           swank:buffer-first-change
+          ))
+
+(define-interface swank-profiling-rpc-interface
+  (export swank:toggle-profile-fdefinition
+          swank:profile-package
+          swank:profiled-functions
+          swank:profile-report
+          swank:profile-reset
+          swank:unprofile-all
+          ))
+
+(define-interface swank-tracing-rpc-interface
+  (export swank:swank-toggle-trace
+          swank:untrace-all
+          ))
+
+(define-interface swank-compiler/loader-rpc-interface
+  (export swank:load-file
+          swank:load-file-set-package
+          swank:compile-file-for-emacs
+          swank:compile-file-if-needed
+          swank:compile-string-for-emacs
+          swank:compiler-notes-for-emacs
+          swank:operate-on-system-for-emacs
+          swank:list-all-systems-in-central-registry
+          ))
+
+(define-interface swank-macro-expansion-rpc-interface
+  (export swank:swank-macroexpand-1
+          swank:swank-macroexpand
+          swank:swank-macroexpand-all
+          ))
+
+(define-interface swank-disassembly-rpc-interface
+  (export swank:disassemble-symbol
+          ))
+
+(define-interface swank-description-rpc-interface
+  (export swank:describe-symbol
+          swank:describe-function
+          swank:describe-definition-for-emacs
+          swank:documentation-symbol    ;(*)
+          ))
+
+(define-interface swank-xref-rpc-interface
+  (export swank:xref
+          ))
+
+(define-interface swank-thread-control-rpc-interface
+  (export swank:list-threads
+          swank:quit-thread-browser
+          swank:debug-nth-thread
+          swank:kill-nth-thread
+          swank:start-swank-server-in-thread ;(*)
+          ))
+
+(define-interface swank-indentation-rpc-interface
+  (export swank:update-indentation-information
           ))
 
 
