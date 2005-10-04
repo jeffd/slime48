@@ -276,6 +276,7 @@
           maybe-environment-ref
           maybe-structure-ref
           package-reflective-tower
+          uid->package
           package-open!
           package-undefine!
           ))

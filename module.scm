@@ -111,3 +111,14 @@
 
 (define (package-reflective-tower package)
   (environment-macro-eval (package->environment package)))
+
+(define (uid->package uid)              ;** Expensive!
+  (let* ((packages (find-all-records :package))
+         (count (vector-length packages)))
+    (let loop ((i 0))
+      (if (= i count)
+          #f
+          (let ((package (vector-ref packages i)))
+            (if (= (package-uid package) uid)
+                package
+                (loop (+ i 1))))))))

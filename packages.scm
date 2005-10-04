@@ -333,6 +333,7 @@
         display-conditions
         enumerated
         (subset architecture (op exception))
+        (subset primitives (find-all-records))
         tables
         (subset i/o (silently))
         packages packages-internal
