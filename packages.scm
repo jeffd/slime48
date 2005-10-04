@@ -189,6 +189,7 @@
         debug-data
         (subset names (generated? generated-name generated-uid
                                   name->symbol))
+        (subset module-control (uid->package))
         (subset packages (structure-package package-uid))
         (subset packages-internal (package-file-name
                                    package-clauses))

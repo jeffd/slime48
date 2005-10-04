@@ -257,10 +257,7 @@
 ; (put 'eval-in-frame 'scheme-indent-function 2)
 
 (define (*eval-in-frame string frame ddata pc)
-  (let ((package (guess-frame-package ddata
-                                      (template-package-id
-                                       (continuation-template frame))))
-        (bindings (filter (lambda (x) (and (car x) #t))
+  (let ((bindings (filter (lambda (x) (and (car x) #t))
                           (frame-locals-list frame ddata
                                              make-local-binding)))
         (exp (read-from-string string)))
@@ -269,27 +266,15 @@
                   ,exp)
                 ,@(map cdr bindings))
               exp)
-          (or package (interaction-environment)))))
+          (or (uid->package (template-package-id
+                             (continuation-template frame)))
+              (interaction-environment)))))
 
 (define (make-local-binding name value)
   (cons name `(,operator/code-quote ,value)))
 
 (define operator/lambda (get-operator 'lambda syntax-type))
 (define operator/code-quote (get-operator 'code-quote syntax-type))
-
-(define (guess-frame-package ddata uid)
-  (and-let* ((names (debug-data-names ddata))
-             ((pair? names)))
-    (let loop ((names names))
-      (let ((more (cdr names)))
-        (if (pair? more)
-            (loop more)
-            (and-let* ((package (find-package-in-swank-world
-                                 (car names)
-                                 (current-swank-world)))
-                       ;; Sanity check.
-                       ((eq? uid (package-uid package))))
-              package))))))
 
 ;;; No such thing as a catch tag in Scheme.
 
