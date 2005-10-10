@@ -285,6 +285,20 @@
   (export load-package
           ))
 
+(define-interface debugger-utilities-interface
+  (export continuation-frame-list
+          continuation-frame-ref
+          ignorable-frame?
+          with-ignorable-frame-template
+          continuation-debug-data
+          frame-preview
+          display-frame-source
+          destructure-source-info
+          eval-in-frame
+          frame-locals-list
+          template-source-location
+          ))
+
 
 
 (define-interface restarting-interface

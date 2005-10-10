@@ -48,8 +48,7 @@
              ,(sldb-level)
              ,(sldb-disclose-condition)
              ,(sldb-restarter-listing)
-             ,(continuation-frame-list (sldb-continuation)
-                                       0 20) ; same as in CL Swank
+             ,(swank:backtrace 0 20)    ; [0,20) - same as in CL Swank
              ,(sldb-pending-return-tags))))
 
 (define (sldb-restarter-listing)
@@ -80,8 +79,11 @@
   ;; reset or resume the top level.
   (reverse (restarters-in-thread (sldb-thread-to-debug))))
 
-(define (sldb-continuation)
-  (thread-continuation (sldb-thread-to-debug)))
+(define (call-with-sldb-continuation recipient)
+  (with-ignorable-frame-template
+      (closure-template (loophole :closure push-swank-level))
+    (lambda ()
+      (recipient (thread-continuation (sldb-thread-to-debug))))))
 
 (define (sldb-pending-return-tags)
   (swank-session-pending-return-tags (current-swank-session)))
@@ -131,16 +133,18 @@
   'nil)
 
 (define (swank:backtrace start end)
-  (let loop ((cont (sldb-continuation))
-             (i 0))
-    (cond ((not cont) '())
-          ((= i start)
-           (continuation-frame-list cont start (- end start)))
-          (else
-           (loop (continuation-cont cont)
-                 (if (ignorable-frame? cont)
-                     i
-                     (+ i 1)))))))
+  (call-with-sldb-continuation
+   (lambda (cont)
+     (let loop ((cont cont)
+                (i 0))
+       (cond ((not cont) '())
+             ((= i start)
+              (continuation-frame-list cont start (- end start)))
+             (else
+              (loop (continuation-cont cont)
+                    (if (ignorable-frame? cont)
+                        i
+                        (+ i 1)))))))))
 
 (define (swank:debugger-info-for-emacs start end)
   (list (sldb-disclose-condition)
@@ -220,16 +224,18 @@
 (define (swank:inspect-frame-var frame-number var-number)
   (inspect-object
    (continuation-arg
-    (continuation-frame-ref (sldb-continuation) frame-number)
+    (call-with-sldb-continuation
+     (lambda (cont)
+       (continuation-frame-ref cont frame-number)))
     var-number)))
 
 (define (swank:inspect-in-frame string n)
-  (cond ((eval-in-frame n string)
+  (cond ((eval-in-sldb-frame n string)
          => inspect-results)
         (else (abort-swank-rpc))))
 
 (define (swank:eval-string-in-frame string n)
-  (eval-in-frame* n string
+  (eval-in-sldb-frame* n string
     (lambda () "; Nothing to evaluate")
     (lambda () "; No values")
     (lambda (v)
@@ -238,60 +244,41 @@
       (delimited-object-list-string vals limited-write ","))))
 
 (define (swank:pprint-eval-string-in-frame string n)
-  (eval-in-frame* n string
+  (eval-in-sldb-frame* n string
     (lambda () "; Nothing to evaluate")
     (lambda () "; No values")
     (lambda (v) (pp-to-string v))
     (lambda (vals)
       (delimited-object-list-string vals p ""))))
 
-(define (eval-in-frame* n string nothing zero one many)
-  (let ((results (eval-in-frame n string)))
+(define (eval-in-sldb-frame n string)
+  (cond ((sldb-frame-ref n)
+         => (lambda (frame)
+              (let ((exp (read-from-string string)))
+                (if (eof-object? exp)
+                    #f
+                    (receive results (eval-in-frame exp frame)
+                      results)))))
+        (else
+         (repl-eval-string string))))
+
+(define (eval-in-sldb-frame* n string nothing zero one many)
+  (let ((results (eval-in-sldb-frame n string)))
     (cond ((not results) (nothing))
           ((null? results) (zero))
           ((null? (cdr results)) (one (car results)))
           (else (many results)))))
 
-(define (eval-in-frame n string)
-  (call-with-sldb-frame n
-    (lambda () (repl-eval-string string))
-    (lambda (frame ddata pc)
-      (let ((exp (read-from-string string)))
-        (if (eof-object? exp)
-            #f
-            (receive results (*eval-in-frame exp frame ddata pc)
-              results))))))
-
-; (put 'eval-in-frame 'scheme-indent-function 2)
-
-(define (*eval-in-frame exp frame ddata pc)
-  (let ((bindings (filter (lambda (x) (and (car x) #t))
-                          (frame-locals-list frame ddata
-                                             make-local-binding))))
-    (eval (if (pair? bindings)
-              `((,operator/lambda ,(map car bindings)
-                  ,exp)
-                ,@(map cdr bindings))
-              exp)
-          (or (uid->package (template-package-id
-                             (continuation-template frame)))
-              (interaction-environment)))))
-
-(define (make-local-binding name value)
-  (cons name `(,operator/code-quote ,value)))
-
-(define operator/lambda (get-operator 'lambda syntax-type))
-(define operator/code-quote (get-operator 'code-quote syntax-type))
+; (put 'eval-in-sldb-frame* 'scheme-indent-function 2)
 
 ;;; No such thing as a catch tag in Scheme.
 
 (define (swank:frame-catch-tags-for-emacs n) '())
 
 (define (swank:frame-locals-for-emacs n)
-  (call-with-sldb-frame n
-    (lambda () '())
-    (lambda (frame ddata pc)
-      (frame-locals-list frame ddata make-frame-local-for-emacs))))
+  (or (and-let* ((frame (sldb-frame-ref n)))
+        (frame-locals-list frame make-frame-local-for-emacs))
+      '()))
 
 (define (make-frame-local-for-emacs name value)
   `(:NAME ,(cond ((not name)
@@ -309,323 +296,17 @@
              0)
     :VALUE ,(limited-write-to-string value)))
 
-(define (frame-locals-list frame ddata make-frame-local)
-  (*frame-locals-list (let ((arg-count (continuation-arg-count frame)))
-                        (do ((i 0 (+ i 1))
-                             (args '()
-                                   (cons (continuation-arg frame i)
-                                         args)))
-                            ((= i arg-count) args)))
-                      (debug-data-env-shape
-                       ddata
-                       (continuation-pc frame))
-                      0
-                      '()
-                      make-frame-local))
-
-(define (*frame-locals-list args shape i tail make-frame-local)
-  (if (null? args)
-      tail
-      (let ((probe (assv i shape)))
-        (if (and probe (not (null? (cdr probe))))
-            (named-frame-locals-list (cdr probe) args shape i tail
-                                     make-frame-local)
-            (*frame-locals-list (cdr args) shape
-                                (+ i 1)
-                                (cons (make-frame-local #f (car args))
-                                      tail)
-                                make-frame-local)))))
-
-(define (named-frame-locals-list names args shape i tail
-                                 make-frame-local)
-  (cond ((null? names)
-         (*frame-locals-list args shape i tail make-frame-local))
-        ((pair? (car names))            ; environment
-         (let ((env-vector (car args)))
-           (do ((ns (car names) (cdr ns))
-                (j 0 (+ j 1))
-                (tail tail (cons (make-frame-local
-                                  (car ns)
-                                  (vector-ref env-vector j))
-                                 tail)))
-               ((null? ns)
-                (named-frame-locals-list (cdr names)
-                                         (cdr args) shape
-                                         (+ i 1)
-                                         tail
-                                         make-frame-local)))))
-        (else
-         (named-frame-locals-list (cdr names)
-                                  (cdr args) shape
-                                  (+ i 1)
-                                  (cons (make-frame-local (car names)
-                                                          (car args))
-                                        tail)
-                                  make-frame-local))))
-
 (define (swank:frame-source-location-for-emacs n)
-  (let ((lose (lambda ()
-                `(:ERROR ,(string-append
-                           "No source location for frame "
-                           (number->string n 10))))))
-    (call-with-sldb-frame n
-      lose
-      (lambda (frame ddata pc)
-        (or (debug-data-source-location ddata pc)
-            (lose))))))
+  (or (and-let* ((frame (sldb-frame-ref n)))
+        (template-source-location (continuation-template frame)
+                                  (continuation-pc frame)))
+      `(:ERROR ,(string-append "No source location for frame "
+                               (number->string n 10)))))
 
-(define (call-with-sldb-frame n lose win)
-  (let ((frame (continuation-frame-ref (sldb-continuation) n)))
-    (if (continuation? frame)
-        (call-with-continuation-debug-data frame
-          lose
-          (lambda (ddata pc)
-            (win frame ddata pc)))
-        (lose))))
-
-; (put 'call-with-sldb-frame 'scheme-indent-function 1)
-
-
-
-;;; Finding source locations
-
-;++ This should go somewhere else.
-
-(define (debug-data-source-location ddata pc)
-  (let ((names (debug-data-names ddata)))
-    (and (pair? names)
-         (let ((hints (source-location-hints ddata pc)))
-           (if (pair? (cdr names))
-               (let loop ((names names))
-                 (if (pair? (cddr names))
-                     (loop (cdr names))
-                     (find-source-location (cadr names) (car names)
-                                           hints)))
-               (find-source-location (car names) #f hints))))))
-
-(define (source-location-hints ddata pc)
-  (cond ((assv pc (debug-data-source ddata))
-         => (lambda (source-info)
-              (receive (exp index parent cwv?)
-                       (destructure-source-info source-info)
-                `(:SNIPPET ,(limited-write-to-string exp)
-                  ,@(if parent
-                        `(:CALL-SITE ,(symbol->string (car parent)))
-                        '())))))
-        (else '())))
-
-(define (find-source-location top def hints)
-  (let ((def (if def
-                 `(:FUNCTION-NAME ,(symbol->string def))
-                 'NIL)))
-    (if (string? top)
-        `(:LOCATION (:FILE ,top) ,def ,hints)
-        (and-let* ((struct (find-structure-in-swank-world
-                            top
-                            (current-swank-world)))
-                   (package (structure-package struct))
-                   (filename (package-file-name package))
-                   (base (file-name-directory filename))
-                   (source-filename
-                    (any (lambda (clause)
-                           (and (eq? (car clause) 'FILES)
-                                (pair? (cdr clause))
-                                (source-file-exists? (cadr clause)
-                                                     base)))
-                         (package-clauses package))))
-          `(:LOCATION (:FILE ,source-filename)
-                      ,def
-                      ,hints)))))
-
-(define (any fn list)
-  (and (pair? list)
-       (or (fn (car list))
-           (any fn (cdr list)))))
-
-;++ This is a hideous kludge.
-
-(define (source-file-exists? name base)
-  (call-with-current-continuation
-    (lambda (k)
-      (with-handler (lambda (c punt) (if (error? c) (k #f) (punt)))
-        (lambda ()
-          (let ((name (translate
-                       (namestring name base *scheme-file-type*))))
-            (close-input-port (open-input-file name))
-            name))))))
-
-
-
-;;; Generating frame listings for backtraces &c.
-
-(define (continuation-frame-list cont start count)
-  (let loop ((cont cont)
-             (i 0) (number start)
-             (frames '()))
-    (cond ((or (= i count)
-               (not cont))
-           (reverse frames))
-          ((ignorable-frame? cont)
-           (loop (continuation-cont cont) i number frames))
-          (else
-           (loop (continuation-cont cont)
-                 (+ i 1) (+ number 1)
-                 (cons (list number (frame-preview cont))
-                       frames))))))
-
-(define (continuation-frame-ref cont n)
-  (let loop ((cont cont) (i 0))
-    (cond ((not cont)
-           #f)
-          ((ignorable-frame? cont)
-           (loop (continuation-cont cont) i))
-          ((= i n)
-           cont)
-          (else
-           (loop (continuation-cont cont) (+ i 1))))))
-
-;;; Filter out continuations within LET-FLUID(S), DYNAMIC-WIND, and
-;;; PUSH-SWANK-LEVEL; they are not useful to the user.
-
-(define ignorable-frame?
-  (let ((fluid-template
-         (let-fluid (make-fluid #f) #f
-           (lambda ()
-             (primitive-catch
-               (lambda (cont)
-                 (or (continuation-template cont)
-                     (begin (warn
-                        "unable to filter LET-FLUID out of backtraces")
-                            #f)))))))
-        (wind-template
-         (dynamic-wind
-           values
-           (lambda ()
-             (primitive-catch
-               (lambda (cont)
-                 (or (continuation-template cont)
-                     (begin (warn
-                     "unable to filter DYNAMIC-WIND out of backtraces")
-                            #f)))))
-           values))
-        (swank-level-pusher-template
-         (closure-template (loophole :closure push-swank-level))))
-    (lambda (frame)
-      (cond ((continuation-template frame)
-             => (lambda (template)
-                  (or (eq? template fluid-template)
-                      (eq? template wind-template)
-                      (eq? template swank-level-pusher-template))))
-            (else #t)))))
-
-(define (call-with-continuation-debug-data cont lose win)
-  (let ((template (continuation-template cont)))
-    (if (not (template? template))
-        (lose)
-        (let ((ddata (template-debug-data template)))
-          (if (debug-data? ddata)
-              (win ddata (continuation-pc cont))
-              (lose))))))
-
-; (put 'call-with-continuation-debug-data 'scheme-indent-function 1)
-
-(define (frame-preview cont)
-  (call-with-continuation-debug-data cont
-    (lambda () "<no frame information>")
-    (lambda (ddata pc)
-      (call-with-string-output-port
-        (lambda (port)
-          (display-frame-source ddata pc port)
-          (newline port)
-          (display "      In: " port)
-          (let ((names (debug-data-names ddata)))
-            (if (let loop ((names names))
-                  (or (null? names)
-                      (and (not  (car names))
-                           (loop (cdr names)))))
-                (write `(anonymous ,(if (debug-data? ddata)
-                                        (debug-data-uid ddata)
-                                        ddata))
-                       port)
-                (begin (write (or (car names) '(anonymous))
-                              port)
-                       (for-each (lambda (name)
-                                   (display " <- " port)
-                                   (write (or name '(anonymous))
-                                          port))
-                                 (cdr names))))))))))
-
-(define (display-frame-source ddata pc port)
-  (cond ((assv pc (debug-data-source ddata))
-         => (lambda (source-info)
-              (receive (exp index parent cwv?)
-                       (destructure-source-info source-info)
-                (limited-write exp port)
-                (cond ((and index parent)
-                       (newline port)
-                       (display "      Waiting for: " port)
-                       (limited-write
-                        (append (take index parent)
-                                (if cwv?
-                                    '((LAMBDA () ^^^))
-                                    '(^^^))
-                                (drop (+ index 1)
-                                      parent))
-                        port))))))
-        (else
-         (display "<no frame source information>" port))))
-
-(define (destructure-source-info source)
-  ;; SOURCE is either a list (<exp>) or (<exp> <index> . <parent>),
-  ;; where <exp> is the expression of a continuation, <index> is the
-  ;; index of <exp> as a subexpression of <parent>, and <parent> is the
-  ;; combination of which <exp> is a subexpression that needed a
-  ;; continuation to evaluate.
-  (let ((exp (cadr source)))
-    (if (and (pair? (cddr source))
-             (integer? (caddr source))
-             (list? (cdddr source)))
-        (let ((exp (cadr source))
-              (index (caddr source))
-              (parent (cdddr source)))
-          ;; CALL-WITH-VALUES continuations have the expression wrapped
-          ;; in a LAMBDA, so you might see a debugger frame that would
-          ;; look like this, if we didn't frobnicate those frames:
-          ;;   4: (lambda () (foo bar baz))
-          ;;       Waiting for: (call-with-values ^^^ #)
-          ;; Instead, because we frobnicate, it looks like this:
-          ;;   4: (foo bar baz)
-          ;;       Waiting for: (call-with-values (lambda () ^^^) #)
-          (if (and (eq? (car parent) 'CALL-WITH-VALUES)
-                   (eqv? index 1)
-                   (eq? (car exp) 'LAMBDA))
-              (values (caddr exp) index parent #t)
-              (values exp index parent #f)))
-        (values exp #f #f #f))))
-
-(define (take n list)
-  (let recur ((list list) (i 0))
-    (if (= i n)
-        '()
-        (cons (car list)
-              (recur (cdr list) (+ i 1))))))
-
-(define (drop n list)
-  (let loop ((list list) (i 0))
-    (if (= i n)
-        list
-        (loop (cdr list)
-              (+ i 1)))))
-
-
-
-;;; Random
-
-(define (filter pred list)              ; reversing filter
-  (let loop ((in list) (out '()))
-    (if (null? in)
-        out
-        (loop (cdr in)
-              (if (pred (car in))
-                  (cons (car in) out)
-                  out)))))
+(define (sldb-frame-ref n)
+  (call-with-sldb-continuation
+   (lambda (cont)
+     (let ((frame (continuation-frame-ref cont n)))
+       (if (continuation? frame)
+           frame
+           #f)))))

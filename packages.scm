@@ -172,23 +172,13 @@
         limited-writing
         pp
         continuations
-        (subset vm-exposure (primitive-catch))  ; To filter out useless
-        (subset closures (closure-template))    ; continuation frames
-        loopholes                               ; in backtraces.
-        (subset templates (template? template-package-id))
-        (subset disclosers (template-debug-data debug-data-names))
-        debug-data
+        debugger-utilities
+        ;; The next two are for accessing PUSH-SWANK-LEVEL's template
+        ;; to filter it out of backtraces.
+        (subset closures (closure-template))
+        loopholes
         (subset names (generated? generated-name generated-uid
                                   name->symbol))
-        (subset module-control (uid->package))
-        (subset packages (structure-package))
-        (subset packages-internal (package-file-name
-                                   package-clauses))
-        filenames                       ; for source location stuff
-        ;; The next two are for constructing expressions in arbitrary
-        ;; environments, maintaining invariants of Scheme forms.
-        (subset meta-types (syntax-type))
-        (subset nodes (get-operator))
         swank-repl                      ; for evaluating in frames
         swank-inspector                 ; for inspecting frames
         swank-worlds
@@ -359,6 +349,32 @@
                                      (make-simple-interface #f '())))
                     (win)))
                 (lose)))))))))
+
+(define-structure debugger-utilities debugger-utilities-interface
+  (open scheme
+        receiving
+        srfi-2
+        fluids
+        simple-signals
+        simple-conditions
+        handle
+        continuations
+        (subset vm-exposure (primitive-catch))
+        (subset templates (template? template-package-id))
+        (subset disclosers (template-debug-data debug-data-names))
+        debug-data
+        string-i/o
+        limited-writing
+        ;; The next two are for constructing expressions in arbitrary
+        ;; environments, maintaining invariants of Scheme forms.
+        (subset nodes (get-operator))
+        (subset meta-types (syntax-type))
+        module-control
+        (subset packages-internal (package-file-name package-clauses))
+        filenames
+        )
+  (optimize auto-integrate)
+  (files debug-util))
 
 
 
