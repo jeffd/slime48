@@ -78,6 +78,8 @@
                       (subset disclosers (location-name))
                       swank-structures
                       config-package
+                      (subset root-scheduler (scheme-exit-now))
+                      swank-quitting
                       swank-worlds
                       swank-i/o
                       swank-tcp-servers
@@ -87,14 +89,13 @@
                 ;; Not sure whether the =slime48/ is necessary.
                 (files =slime48/top))))
 
-(define (slime48-start . port-opt)
+(define (slime48-start exit-on-quit? . port-opt)
   (in 'slime48
       `(RUN (BEGIN (DEFINE SLIME48-WORLD)
                    (DEFINE SLIME48-TCP-SERVER)
                    (CALL-WITH-VALUES
-                       ,(if (pair? port-opt)
-                            `(LAMBDA () (SLIME48 ',(car port-opt)))
-                            'SLIME48)
+                       (LAMBDA ()
+                         (SLIME48 ,exit-on-quit? ,@port-opt))
                      (LAMBDA (WORLD SERVER)
                        (SET! SLIME48-WORLD WORLD)
                        (SET! SLIME48-TCP-SERVER SERVER)))))))

@@ -31,7 +31,7 @@
                (apply 'format (car line-fmt.args) (cdr line-fmt.args)))
              `((",translate =slime48/ %s" ,slime48-path)
                (",exec ,load =slime48/load.scm")
-               (",exec (slime48-start %S)\n" ,port-filename))
+               (",exec (slime48-start #t %S)\n" ,port-filename))
              "\n"))
 
 ;;; This redefinition is necessary because Scheme doesn't support CL's

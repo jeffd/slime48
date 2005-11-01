@@ -106,8 +106,10 @@
 ;;; ----------------
 ;;; Swank RPC implementations
 
-(define-structure swank-general-rpc swank-general-rpc-interface
+(define-structures ((swank-general-rpc swank-general-rpc-interface)
+                    (swank-quitting (export with-swank-quitter)))
   (open scheme
+        fluids
         (subset posix-files (working-directory
                              set-working-directory!))
         swank-sessions
@@ -124,9 +126,14 @@
              :PACKAGE (:NAME "(scratch)"
                        :PROMPT "(scratch)")
              ))
+
+         (define $swank-quitter
+                 (make-fluid terminate-current-swank-session))
+         (define (with-swank-quitter quitter thunk)
+           (let-fluid $swank-quitter quitter thunk))
          (define (swank:quit-lisp)
-           ;++ should probably kill the server here
-           (terminate-current-swank-session))
+           ((fluid $swank-quitter)))
+
          (define (swank:default-directory)
            (working-directory))
          (define (swank:set-default-directory dir)

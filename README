@@ -14,11 +14,16 @@ command processor:
 
   ,translate =slime48/ ~/path/to/slime48/
   ,exec ,load =slime48/load.scm
-  ,exec (slime48-start)
+  ,exec (slime48-start #f)
 
 There will be some warnings signalled, because not all of the back end
 is implemented, and then you will see a message to the effect that a
-server is starting on a certain port.
+server is starting on a certain port.  The argument to SLIME48-START
+specifies whether or not Scheme48 should exit when the SLIME connection
+exits; if you are manually starting up SLIME48, you are probably doing
+this from within some other application, so you probably want not to
+exit the Scheme48 image.  (When running SLIME48 from within Emacs with
+`slime48.el', the argument is automatically specified to be true.)
 
 *Warning*: THIS IS NOT SECURE!  ANYONE MAY CONNECT TO THE SWANK SERVER
 ON THE PORT AND DO ARBITRARY THINGS IN YOUR SCHEME48 SYSTEM!  DO NOT
