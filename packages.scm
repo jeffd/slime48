@@ -114,14 +114,16 @@
         )
   (optimize auto-integrate)
   (begin (define (swank:connection-info)
-           (list 0                      ; process id (unnecessary)
-                 "Scheme48"             ; Lisp implementation type
-                 "scheme48"             ; symbolic name for the above
-                 '()                    ; empty features list
-                 ':spawn                ; communication style
-                 "1.3"                  ; Lisp version (argh!)
-                 'nil                   ; machine instance
-                 ))
+           `(:STYLE :SPAWN
+             :LISP-IMPLEMENTATION (:TYPE "Scheme 48"
+                                   :NAME "s48"
+                                   ;; Argh!  Bad hard-coding!  Bad!
+                                   :VERSION "1.3")
+             :MACHINE ()
+             :FEATURES ()
+             :PACKAGE (:NAME "(scratch)"
+                       :PROMPT "(scratch)")
+             ))
          (define (swank:quit-lisp)
            ;++ should probably kill the server here
            (terminate-current-swank-session))

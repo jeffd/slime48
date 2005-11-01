@@ -6,13 +6,33 @@
 ;;; This code is written by Taylor Campbell and placed in the Public
 ;;; Domain.  All warranties are disclaimed.
 
-(defun slime48-connect (port)
-  "Connect to a SLIME48 server."
-  (interactive "nPort: ")
-  (load-slime)
-  (setq-default slime-lisp-package:connlocal "(scratch)")
-  (setq-default slime-lisp-package-prompt-string:connlocal "(scratch)")
-  (slime-connect "127.0.0.1" port))
+(require 'slime)
+
+(defvar slime48-path (and load-file-name
+                          (file-name-directory load-file-name))
+  "Path to the directory containing the SLIME48 Scheme source.")
+
+(defvar scheme48-program-name "scheme48"
+  "*Name of program to start a usual Scheme48 image.")
+
+(defvar scheme48-program-arguments '()
+  "*List of arguments to send to the Scheme48 command.")
+
+(if (not (assq 's48 slime-lisp-implementations))
+    (setq slime-lisp-implementations
+          `((s48 (,scheme48-program-name ,@scheme48-program-arguments)
+                 :init slime48-init-command)
+            ,@slime-lisp-implementations)))
+
+(defun slime48-init-command (port-filename coding-system)
+  "Return a string to initialize a SLIME48 server."
+  (ignore coding-system)
+  (mapconcat (lambda (line-fmt.args)
+               (apply 'format (car line-fmt.args) (cdr line-fmt.args)))
+             `((",translate =slime48/ %s" ,slime48-path)
+               (",exec ,load =slime48/load.scm")
+               (",exec (slime48-start %S)\n" ,port-filename))
+             "\n"))
 
 ;;; This redefinition is necessary because Scheme doesn't support CL's
 ;;; #...r syntax.   However, CL doesn't support Scheme's #d, on the

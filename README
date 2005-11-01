@@ -24,20 +24,22 @@ server is starting on a certain port.
 ON THE PORT AND DO ARBITRARY THINGS IN YOUR SCHEME48 SYSTEM!  DO NOT
 RUN THIS ON AN INSECURE NETWORK!
 
-On the Emacs side, load SLIME up and set `slime-lisp-package:connlocal'
-and `slime-lisp-package-prompt-string:connlocal' to have default values
-of "(scratch)".  (This is due to a deficiency in SLIME whereby the
-initial package is fixed to be "COMMON-LISP-USER", while SLIME48 wants
-"(scratch)".)  Once that has been done, you can connect to the running
-Scheme48 instance with `slime-connect'.  This can be accomplished with:
+On the Emacs side, put this into your initialization file:
 
-  (require 'slime)
-  (slime-setup)
-  (setq-default slime-lisp-package:connlocal "(scratch)")
-  (setq-default slime-lisp-package-prompt-string:connlocal "(scratch)")
-  (slime-connect "127.0.0.1" PORT)
+  (eval-after-load "slime" '(load "/path/to/slime48/slime48"))
 
-where PORT is the TCP port number printed by Scheme48.
+Note that this names the _file_ `slime48' in whatever directory the
+SLIME48 source resides in.  This file will have a default extension of
+`.el' or `.elc'.  The `slime48.el' file include in this directory
+initializes SLIME to work with SLIME48 and provides several Scheme48-
+specific conveniences: `slime48-toggle-presentations' (along with
+`enable' and `disable' operations) toggles whether SLIME48 supports
+clickable presentation output, which is off by default; the ,IN and
+,IN-PACKAGE commands are like ,!P and ,CHANGE-PACKAGE, but tailored for
+seasoned Scheme48 users in whose hands are ingrained ,IN; the ,SCRATCH
+and ,CONFIG commands work similarly; and ,USE and ,USE-PACKAGE open
+packages in the interaction environment, like the Scheme48 command
+processor's ,OPEN command.
 
 On the Scheme48 side, as you work with SLIME, you will see a massive
 flow of messages about Swank's operation.  There is no way to disable
