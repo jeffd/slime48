@@ -170,27 +170,15 @@
       ;; Silently ignore the request if it's on the wrong level.
       'nil))
 
-;;; If we're running in a Swank RPC, there will always be an ABORT
-;;; restarter, because it's installed as the RPC aborter before calling
-;;; the actual procedure.  However, we must filter out the first ABORT
-;;; restarter, because it corresponds with the SLDB-ABORT RPC, which is
-;;; rather useless to invoke.
-
 (define (swank:sldb-abort)
-  (let loop ((rs (sldb-restarters)) (flag #f))
-    (cond ((null? rs)
-           (error "no ABORT restarter (internal inconsistency)"
-                  '(SWANK:SLDB-ABORT)
-                  (sldb-restarters)))
-          ((eq? (restarter-tag (car rs))
-                'abort)
-           (if flag
-               (restart (car rs))
-               (loop (cdr rs) #t)))
-          (else
-           (loop (cdr rs) flag)))))
-
-;;; The same is not true, however, of CONTINUE restarters.
+  (cond ((find-restarter 'abort)
+         => (lambda (r) (restart r)))
+        (else
+         (let ((session (current-swank-session)))
+           (swank-log "(session ~S, level ~S) No ABORT restarter"
+                      (swank-session-id session)
+                      (swank-session-level-number session)))
+         (abort-swank-rpc))))
 
 (define (swank:sldb-continue)
   (cond ((find-restarter 'continue)
