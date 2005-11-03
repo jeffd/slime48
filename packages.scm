@@ -154,6 +154,7 @@
         simple-signals
         weak-utilities
         reduce
+        package-loader
         packages
         (subset packages-internal (package-name))
         (subset environments (set-interaction-environment!))

@@ -186,10 +186,14 @@
   (let ((id (read-from-string string))
         (world (current-swank-world)))
     (cond ((find-structure-in-swank-world id world)
-           (package-open! (interaction-environment)
-                          (lambda ()
-                            ;; Don't eagerly cache the value, because
-                            ;; it may change during development.
-                            (find-structure-in-swank-world id world)))
-           'nil)
+           => (lambda (struct)
+                (load-package (structure-package struct))
+                (package-open! (interaction-environment)
+                               (lambda ()
+                                 ;; Don't cache the value, because
+                                 ;; it may change during development.
+                                 (find-structure-in-swank-world
+                                  id
+                                  world)))
+               'nil))
           (else (abort-swank-rpc)))))
