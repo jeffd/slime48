@@ -47,6 +47,7 @@
         queues
         (subset environments (with-interaction-environment
                               set-interaction-environment!))
+        (subset package-mutation (package-system-sentinel))
         swank-logging
         swank-worlds
         )

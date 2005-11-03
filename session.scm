@@ -270,6 +270,9 @@
       ;++ This message seems wrong; "Abort SLIME evaluation.", perhaps?
       "Abort handling SLIME request."
     (lambda (r)
+      ;; The package system sentinel must be invoked before any
+      ;; possible environment operations.
+      (package-system-sentinel)
       (let ((result-cell (make-cell '(:ABORT)))
             (already-returned? (make-cell #f)))
         (let-fluids $swank-return-tag return-tag
