@@ -293,6 +293,35 @@
            '())
          ))
 
+(define-structure swank-compiler/loader-rpc
+    swank-compiler/loader-rpc-interface
+  (open scheme
+        receiving
+        string-i/o
+        filenames
+        package-loader
+        (subset packages (package->environment
+                          structure-package
+                          package-uid
+                          link!))
+        (subset compiler-envs (bind-source-file-name))
+        syntactic
+        (subset compiler (compile-forms))
+        compile-packages       ;++ replace for FASL library
+        (subset closures (make-closure))
+        (subset vm-exposure (invoke-closure))
+        handle
+        simple-conditions
+        (subset display-conditions (display-condition))
+        restarting
+        time
+        (subset swank-repl-rpc (swank:set-package))
+        swank-sessions
+        swank-worlds
+        )
+  (optimize auto-integrate)
+  (files loader))
+
 ;;; This macro should go somewhere else.
 
 (define-syntax define-compound-structure
@@ -312,6 +341,7 @@
   swank-completion-rpc
   swank-apropos-rpc
   swank-definition-finding-rpc
+  swank-compiler/loader-rpc
   )
 
 
