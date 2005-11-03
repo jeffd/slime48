@@ -197,3 +197,8 @@
                                   world)))
                'nil))
           (else (abort-swank-rpc)))))
+
+(define (swank:undefine-function string)
+  (package-undefine! (interaction-environment)
+                     (read-from-string string))
+  'nil)
