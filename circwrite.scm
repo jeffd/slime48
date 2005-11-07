@@ -34,7 +34,10 @@
               ((pair? obj)
                (write-char #\space port)
                (recur (car obj))
-               (loop (cdr obj)))))
+               (loop (cdr obj)))
+              ((not (null? obj))
+               (write-string " . " port)
+               (recur obj))))
       (write-char #\) port))
 
     (define (recur obj)
