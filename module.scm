@@ -106,7 +106,9 @@
                                 `("name bound to syntax"
                                   ,id ,env))))
       (fail (make-condition 'error
-                            `("invalid variable reference"
+                            `(,(if (not binding)
+                                   "reference to unbound variable"
+                                   "invalid variable reference")
                               ,id ,env)))))
 
 (define (package-reflective-tower package)
