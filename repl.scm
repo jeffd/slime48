@@ -169,6 +169,7 @@
         (world (current-swank-world)))
     (cond ((find-package-in-swank-world id world)
            => (lambda (package)
+                (load-package package)
                 (set-interaction-environment! package)
                 (let ((name (package-name package)))
                   (if (not (or (equal? id name)
