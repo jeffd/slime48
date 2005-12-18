@@ -68,6 +68,9 @@
 (define (swank:inspect-nth-part n)
   (inspect-subobject (swank:inspector-nth-part n)))
 
+(define (swank:pprint-inspector-part n)
+  (pp-to-string (swank:inspector-nth-part n)))
+
 (define (swank:inspector-pop)
   (let ((stack (current-inspector-stack)))
     (cond ((pair? stack)

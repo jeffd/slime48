@@ -173,6 +173,7 @@
           swank:inspect-nth-part
           swank:inspector-nth-part
           swank:inspector-call-nth-action ;(*)
+          swank:pprint-inspector-part
           swank:inspector-pop
           swank:inspector-next
           swank:quit-inspector
