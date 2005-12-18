@@ -20,10 +20,7 @@
 
 ; (put 'with-sldb-handler 'scheme-indent-function 1)
 
-;;; This really ought to be SWANK:BREAK; that it can be CL:BREAK is an
-;;; artifact of the orientation in SLIME toward Common Lisp.
-
-(define (cl:break)
+(define (swank:simple-break)
   (with-exiting-restarter 'continue "Continue from break."
     (lambda ()
       (sldb-condition-handler '(breakpoint)

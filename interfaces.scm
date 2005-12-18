@@ -131,7 +131,7 @@
           ))
 
 (define-interface swank-sldb-rpc-interface
-  (export cl:break                      ; eck
+  (export swank:simple-break
           swank:sldb-break-with-default-debugger
           swank:backtrace
           swank:debugger-info-for-emacs
