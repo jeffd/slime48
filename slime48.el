@@ -12,18 +12,6 @@
                           (file-name-directory load-file-name))
   "Path to the directory containing the SLIME48 Scheme source.")
 
-(defvar scheme48-program-name "scheme48"
-  "*Name of program to start a usual Scheme48 image.")
-
-(defvar scheme48-program-arguments '()
-  "*List of arguments to send to the Scheme48 command.")
-
-(if (not (assq 's48 slime-lisp-implementations))
-    (setq slime-lisp-implementations
-          `((s48 (,scheme48-program-name ,@scheme48-program-arguments)
-                 :init slime48-init-command)
-            ,@slime-lisp-implementations)))
-
 (add-to-list 'slime-lisp-modes 'scheme-mode)
 (add-to-list 'slime-lisp-modes 'scheme48-mode)
 
