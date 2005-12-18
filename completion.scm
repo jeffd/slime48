@@ -40,9 +40,10 @@
          ;++ hack
          (symbol->string (read-from-string prefix-string))))
     (define (test symbol)
-      (let ((string (symbol->string symbol)))
-        (if (completion? prefix-string string)
-            (set! completions (cons string completions)))))
+      (if (symbol? symbol)     ; protect against generated names
+          (let ((string (symbol->string symbol)))
+            (if (completion? prefix-string string)
+                (set! completions (cons string completions))))))
     (for-each-definition (lambda (symbol binding)
                            (test symbol))
                          package)
