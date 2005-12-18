@@ -164,6 +164,7 @@
           ;;       Waiting for: (call-with-values (lambda () ^^^) #)
           (if (and (eq? (car parent) 'CALL-WITH-VALUES)
                    (eqv? index 1)
+                   (pair? exp)
                    (eq? (car exp) 'LAMBDA))
               (values (caddr exp) index parent #t)
               (values exp index parent #f)))
