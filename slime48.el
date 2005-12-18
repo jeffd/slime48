@@ -77,10 +77,6 @@
    nil
    "swank-repl"))
 
-(defslime-repl-shortcut nil ("in-package" "in")
-  (:handler 'slime-repl-set-package)
-  (:one-liner "Go into a different package for interaction."))
-
 (defslime-repl-shortcut nil ("scratch")
   (:handler (lambda ()
               (interactive)
