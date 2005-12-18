@@ -24,6 +24,9 @@
                  :init slime48-init-command)
             ,@slime-lisp-implementations)))
 
+(add-to-list 'slime-lisp-modes 'scheme-mode)
+(add-to-list 'slime-lisp-modes 'scheme48-mode)
+
 (defun slime48-init-command (port-filename coding-system)
   "Return a string to initialize a SLIME48 server."
   (ignore coding-system)
