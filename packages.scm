@@ -285,10 +285,40 @@
 
 (define-structure swank-definition-finding-rpc
     swank-definition-finding-rpc-interface
-  (open scheme)
+  (open scheme
+        module-control
+        string-i/o
+        debugger-utilities
+        (subset display-conditions (display-condition))
+        closures
+        destructuring
+        (subset disclosers (template-debug-data))
+        (subset debug-data (debug-data-name)))
   (optimize auto-integrate)
   (begin (define (swank:find-definitions-for-emacs name)
-           '())
+           (maybe-environment-ref (interaction-environment)
+               (read-from-string name)
+             (lambda (value)
+               (if (closure? value)
+                   (cond ((template-source-location
+                           (closure-template value)
+                           ;; PC is non-#F only for continuations.
+                           #f)
+                          => (lambda (location)
+                               ;; One location -> one-element list.
+                               `((,(circular-write-to-string
+                                    (debug-data-name
+                                     (template-debug-data
+                                      (closure-template value))))
+                                  ,location))))
+                         (else 'nil))
+                   'nil))
+             (lambda (condition)
+               `((,name (:ERROR ,(call-with-string-output-port
+                                   (lambda (port)
+                                     (display-condition condition
+                                                        port)))))))))
+
          (define (swank:buffer-first-change filename)
            '())
          ))
