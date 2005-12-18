@@ -8,7 +8,17 @@
 
 (define (swank:list-all-package-names include-nicknames?)
   (map write-to-string
-       (swank-world-package-names (current-swank-world))))
+       ;; This is a bit of a hack.  Scheme48 has a distinction between
+       ;; structures and packages, which CL doesn't; some commands want
+       ;; packages (to enter, which is invalid for stable packages),
+       ;; and some commands want structures (to open, which is valid
+       ;; for structures with any packages, stable or unstable), and
+       ;; there is no way to make CL SLIME differentiate between the
+       ;; two.  (Actually, it might make sense for it to distinguish
+       ;; between locked & unlocked packages in CL, which could serve
+       ;; as the same distinction as that between structures & packages
+       ;; here.)  This is the most useful behaviour I can come up with.
+       (swank-world-structure-names (current-swank-world))))
 
 (define (swank:fuzzy-completions prefix-string package-spec)
   '())
