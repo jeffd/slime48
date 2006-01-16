@@ -281,6 +281,17 @@
              0)
     :VALUE ,(limited-write-to-string value)))
 
+(define (swank:sldb-disassemble n)
+  (cond ((sldb-frame-ref n)
+         => (lambda (frame)
+              (with-output-to-string
+                (lambda ()
+                  (display "* PC: ")      ;++ ugly hack
+                  (write (continuation-pc frame))
+                  (newline)
+                  (disassemble frame)))))
+        (else (swank-abort-rpc))))
+
 (define (swank:frame-source-location-for-emacs n)
   (or (and-let* ((frame (sldb-frame-ref n)))
         (template-source-location (continuation-template frame)

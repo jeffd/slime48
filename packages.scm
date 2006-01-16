@@ -184,6 +184,7 @@
         pp
         continuations
         debugger-utilities
+        disassembler     ;++ flush (see comment by SWANK-INSPECTOR)
         ;; The next two are for accessing PUSH-SWANK-LEVEL's template
         ;; to filter it out of backtraces.
         (subset closures (closure-template))
