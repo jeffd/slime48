@@ -61,12 +61,13 @@ RUN THIS ON AN INSECURE NETWORK!
 (This is due to a deficiency in Scheme48's networking interface.  It is
 being worked on.)
 
-Loading SLIME48 may take a little while; loading SLIME is slow.  You
-will see several warnings. Warnings about structures having undefined
-exports named SWANK:... are mostly harmless, unless you try to use a
-SLIME feature that requires them.  Many things are presently not
-implemented; if you want them to be implemented, please contact me by
-means specified at the bottom of this file.
+Loading SLIME48 may take a little while.  You will see several
+warnings.  Expect warnings about structures having undefined exports
+named SWANK:..., which correspond both to unimplemented features and to
+CL-specific things that you would never encounter in Scheme.  If you
+encounter a warning about a Swank RPC call for a feature you want, or a
+different kind of warning, please contact me by means specified at the
+bottom of this file.
 
 ** Scheme Buffer Setup
 
