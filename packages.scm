@@ -226,6 +226,9 @@
         disassembler           ;++ Scheme48 command processor and ought
                                ;++ to be replaced.
         byte-vectors
+        closures
+        (subset debug-data (debug-data-env-shape))
+        (subset disclosers (template-debug-data))
         )
   (optimize auto-integrate)
   (files inspector))

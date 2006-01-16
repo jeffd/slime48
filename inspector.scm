@@ -485,6 +485,54 @@
 
 ;;; General compound data
 
+;** This code assumes that all environments are flat, which is the case
+;** in Scheme48 1.3.  It would have to be changed if the environment
+;** representation were to change.
+
+(define-method &inspect-object ((closure :closure))
+  (values "A closure."
+          'closure
+          (let ((template (closure-template closure))
+                (env (closure-env closure)))
+            `(,@(if (or (not env) (zero? (vector-length env)))
+                    '()
+                    `("Environment:"
+                      ,@(inspect-environment
+                         env
+                         (debug-data-env-shape
+                          (template-debug-data template)
+                          #f))          ; No PC
+                      ,newline ,newline))
+              "Template: " (,template)))))
+
+(define (inspect-environment env shape)
+  (let ((len (vector-length env)))
+    (define (with-names i names result)
+      (cond ((= i len)
+             (reverse result))
+            ((not (pair? names))
+             (with-no-names i result))
+            (else
+             (with-names (+ i 1) (cdr names)
+               (append-reverse `(,newline ,i ,(name-label (car names))
+                                          ,(safe-vector-ref env i))
+                               result)))))
+    (define (with-no-names i result)
+      (if (= i len)
+          (reverse result)
+          (with-no-names (+ i 1)
+            (append-reverse `(,newline ,i ,(safe-vector-ref env i))
+                            result))))
+    (if (pair? shape)
+        (with-names 0 (car shape) '())
+        (with-no-names 0 '()))))
+
+(define (name-label name)
+  (if (symbol? name)
+      name
+      (string-append (circular-write-to-string name)
+                     ": ")))
+
 
 
 ;;; Random utilities
