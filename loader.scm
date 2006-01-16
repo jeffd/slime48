@@ -13,7 +13,8 @@
          (and (> len 4)
               (not (string=? (substring filename (- len 4) len)
                              ".scm"))))
-       (string-append filename ".scm"))
+       (string-append filename ".scm")
+       filename)
    (interaction-environment))
   'nil)
 
