@@ -261,32 +261,38 @@
 
 ;;; Indexed objects
 
-(define (define-indexed-inspector :type title type-id
-          ref length
-          unassigned?)
-  (define-method &inspect-object ((obj :type))
-    (values title type-id
-            (let ((len (length obj)))
-              `("Length: " (,len) ,newline
-                "Contents:"
-                  ,@(reduce ((count* i 0 len))
-                        ((items '()))
-                      (append-reverse `(,newline ,i
-                                        ,(if (unassigned? obj i)
-                                             "{unassigned}"
-                                             (list (ref obj i))))
-                                      items)
+(define-method &inspect-object ((vector :vector))
+  (values "A vector."
+          'vector
+          (indexed-contents vector vector-length safe-vector-ref)))
 
-                      (reverse items)))))))
+(define (safe-vector-ref vector index)
+  (if (vector-unassigned? vector index)
+      "{unassigned}"
+      `(,(vector-ref vector index))))
 
-(define-indexed-inspector :vector "A vector." 'vector
-  vector-ref vector-length
-  vector-unassigned?)           ; may be the case in environments
+(define-method &inspect-object ((template :template))
+  (values "A closure template (compiled code)."
+          'template
+          `(,@(indexed-contents template template-length
+                                safe-template-ref)
+            ,newline ,newline "Disassembly:" ,newline
+            ,(with-output-to-string
+               (lambda ()
+                 (disassemble template))))))
 
-(define-indexed-inspector :template "A template (compiled code)."
-  'template
-  template-ref template-length
-  (lambda (t i) #f))
+(define (safe-template-ref template index)
+  `(,(template-ref template index)))
+
+(define (indexed-contents object length ref)
+  (let ((len (length object)))
+    `("Length: " (,len) ,newline
+      "Contents:"
+      ,@(reduce ((count* i 0 len))
+            ((items '()))
+          (append-reverse `(,newline ,i ,(ref object i))
+                          items)
+          (reverse items)))))
 
 ;;; Byte vectors we display very fancily.
 

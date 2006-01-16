@@ -221,6 +221,9 @@
         weak
         cells
         templates
+                               ;++ This brings in a dependency on the
+        disassembler           ;++ Scheme48 command processor and ought
+                               ;++ to be replaced.
         byte-vectors
         )
   (optimize auto-integrate)
