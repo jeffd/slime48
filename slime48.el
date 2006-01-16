@@ -83,3 +83,5 @@
               (interactive (list (slime-read-package-name "Package: ")))
               (slime-eval-async `(swank:use-package ',package))))
   (:one-liner "Use a package in the current interaction."))
+
+(provide 'slime48)
