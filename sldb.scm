@@ -136,7 +136,8 @@
                 (i 0))
        (cond ((not cont) '())
              ((= i start)
-              (continuation-frame-list cont start (- end start)))
+              (continuation-frame-list cont start
+                                       (and end (- end start))))
              (else
               (loop (continuation-cont cont)
                     (if (ignorable-frame? cont)
