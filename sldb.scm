@@ -298,7 +298,7 @@
                   (write (continuation-pc frame))
                   (newline)
                   (disassemble frame)))))
-        (else (swank-abort-rpc))))
+        (else (abort-swank-rpc))))
 
 (define (swank:frame-source-location-for-emacs n)
   (or (and-let* ((frame (sldb-frame-ref n))
