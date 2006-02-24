@@ -167,18 +167,11 @@
 (define (interrupt-swank-thread thread)
   (interrupt-thread thread
     (lambda args
-      (with-exiting-restarter 'continue "Continue from interrupt."
+      (with-exiting-restarter 'continue "Continue from breakpoint."
         (lambda ()
-          (signal 'swank-user-interrupt
-                  "user interrupt"
-                  thread args)))
+          (apply signal 'breakpoint "Swank user interrupt"
+                 args)))
       (apply values args))))
-
-(define-condition-type 'swank-user-interrupt '())
-(define swank-user-interrupt?
-        (condition-predicate 'swank-user-interrupt))
-(define swank-user-interrupt-thread caddr)
-(define swank-user-interrupt-args cdddr)
 
 (define-swank-session-slot swank-input-tag
   set-swank-input-tag!

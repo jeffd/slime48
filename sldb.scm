@@ -13,17 +13,19 @@
   (with-handler (let ((filter (or filter error?)))
                   (lambda (condition punt)
                     (if (or (filter condition)
-                            (swank-user-interrupt? condition))
+                            (breakpoint? condition))
                         (sldb-condition-handler condition punt)
                         (punt))))
     thunk))
+
+(define breakpoint? (condition-predicate 'BREAKPOINT))
 
 ; (put 'with-sldb-handler 'scheme-indent-function 1)
 
 (define (swank:simple-break)
   (with-exiting-restarter 'continue "Continue from break."
     (lambda ()
-      (sldb-condition-handler '(breakpoint)
+      (sldb-condition-handler '(BREAKPOINT)
                               ;; Nothing to punt.
                               values)))
   'nil)

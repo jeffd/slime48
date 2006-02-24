@@ -34,10 +34,7 @@
           abort-swank-rpc                  ; ditto
           receive-outgoing-swank-message   ; for Swank/Emacs interface
 
-          interrupt-swank-thread        ;++ Why export this?
-          swank-user-interrupt?
-          swank-user-interrupt-thread
-          swank-user-interrupt-args
+          interrupt-swank-thread
 
           request-swank-input           ; random
 
