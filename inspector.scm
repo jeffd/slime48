@@ -121,7 +121,13 @@
     (receive (contents parts)
              (process-inspector-listing listing)
       (set-current-inspector-parts! parts)
-      `(:TITLE   ,title
+      `(:TITLE   ,(call-with-string-output-port
+                    (lambda (output-port)
+                      (write-string title output-port)
+                      (newline output-port)
+                      (newline output-port)
+                      (limited-write (current-inspector-object)
+                                     output-port)))
         :TYPE    ,(string-upcase (symbol->string type))
         :CONTENT ,contents))))
 

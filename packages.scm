@@ -208,6 +208,8 @@
         receiving
         destructuring
         string-i/o
+        limited-writing
+        (subset i/o (write-string))
         simple-signals
         xvectors
         methods
