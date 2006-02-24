@@ -208,12 +208,19 @@
   (inspect-object (sldb-condition)))
 
 (define (swank:inspect-frame-var frame-number var-number)
-  (inspect-object
-   (continuation-arg
-    (call-with-sldb-continuation
-     (lambda (cont)
-       (continuation-frame-ref cont frame-number)))
-    var-number)))
+  (cond ((and-let* ((frame (call-with-sldb-continuation
+                             (lambda (cont)
+                               (continuation-frame-ref cont
+                                                       frame-number))))
+                    (locals (frame-locals-list frame
+                                               (lambda (name value)
+                                                 name
+                                                 value)))
+                    ((< var-number (length locals))))
+           (list-ref locals var-number))
+         => inspect-object)
+        (else
+         (abort-swank-rpc))))
 
 (define (swank:inspect-in-frame string n)
   (cond ((eval-in-sldb-frame n string)
@@ -294,8 +301,9 @@
         (else (swank-abort-rpc))))
 
 (define (swank:frame-source-location-for-emacs n)
-  (or (and-let* ((frame (sldb-frame-ref n)))
-        (template-source-location (continuation-template frame)
+  (or (and-let* ((frame (sldb-frame-ref n))
+                 (template (continuation-template frame)))
+        (template-source-location template
                                   (continuation-pc frame)))
       `(:ERROR ,(string-append "No source location for frame "
                                (number->string n 10)))))
