@@ -324,7 +324,8 @@
 (define (current-swank-return-tag) (fluid $swank-return-tag))
 
 (define $swank-rpc-aborter (make-fluid #f))
-(define (abort-swank-rpc)
+(define (abort-swank-rpc . why)
+  (if (pair? why) (apply swank-log why))
   (restart (fluid $swank-rpc-aborter)))
 
 (define (maybe-read-from-string string)

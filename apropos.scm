@@ -27,7 +27,11 @@
             world)
            => (lambda (package)
                 (apropos-package package matches?)))
-          (else (abort-swank-rpc)))))
+          (else
+           (abort-swank-rpc
+            "(world ~S, APROPOS) No such package by name: ~A"
+            (swank-world-id world)
+            package-spec)))))
 
 (define (apropos-matcher string case-sensitive?)
   (cond ((zero? (string-length string))

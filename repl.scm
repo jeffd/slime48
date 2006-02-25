@@ -181,7 +181,12 @@
                   (list id (circular-write-to-string
                             (or name
                                 (package-uid package)))))))
-          (else (abort-swank-rpc)))))
+          (else (abort-swank-rpc
+                 "(world ~S, session ~S, SET-PACKAGE) ~A: ~A"
+                 (swank-world-id world)
+                 (swank-session-id (current-swank-session))
+                 "No such unstable package by name"
+                 string)))))
 
 (define (swank:use-package string)
   (let ((id (read-from-string string))
@@ -197,7 +202,12 @@
                                   id
                                   world)))
                'nil))
-          (else (abort-swank-rpc)))))
+          (else (abort-swank-rpc
+                 "(world ~S, session ~S, USE-PACKAGE) ~A: ~A"
+                 (swank-world-id world)
+                 (swank-session-id (current-swank-session))
+                 "No such structure by name"
+                 string)))))
 
 (define (swank:undefine-function string)
   (package-undefine! (interaction-environment)

@@ -42,7 +42,11 @@
                                             string-prefix?)))
                   (list completions
                         (longest-common-prefix completions)))))
-          (else (abort-swank-rpc)))))
+          (else
+           (abort-swank-rpc
+            "(world ~S, COMPLETION) No such package by name: ~A"
+            (swank-world-id world)
+            package-spec)))))
 
 (define (compute-completions prefix-string package completion?)
   (let ((completions '())

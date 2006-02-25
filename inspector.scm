@@ -60,7 +60,11 @@
 (define (swank:init-inspector exp-string)
   (cond ((repl-eval-string exp-string)
          => inspect-results)
-        (else (abort-swank-rpc))))
+        (else
+         (abort-swank-rpc
+          "(session ~S, INSPECT) No expression in string: ~S"
+          (swank-session-id (current-swank-session))
+          exp-string))))
 
 (define (swank:inspector-nth-part n)
   (xvector-ref (current-inspector-parts) n))

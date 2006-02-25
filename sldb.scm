@@ -153,42 +153,45 @@
         (sldb-pending-return-tags)))
 
 (define (swank:invoke-nth-restart-for-emacs level n)
-  (if (= level (swank-session-level-number (current-swank-session)))
-      (let loop ((restarters (sldb-restarters))
-                 (n n))
-        (cond ((null? restarters)
-               (swank-log "(session ~S, level ~S) Restart index ~S ~A"
-                          (swank-session-id (current-swank-session))
-                          n
-                          "out of bounds")
-               (abort-swank-rpc))
-              ((zero? n)
-               (restart-interactively (car restarters)))
-              (else
-               (loop (cdr restarters)
-                     (- n 1)))))
-      ;; Silently ignore the request if it's on the wrong level.
-      'nil))
+  (let* ((session (current-swank-session))
+         (current-level (swank-session-level-number session)))
+    (if (= level current-level)
+        (let loop ((restarters (sldb-restarters))
+                   (n n))
+          (cond ((null? restarters)
+                 (abort-swank-rpc
+                  "(session ~S, level ~S) SLDB restarter index ~S ~A"
+                  (swank-session-id session)
+                  current-level
+                  n
+                  "out of bounds"))
+                ((zero? n)
+                 (restart-interactively (car restarters)))
+                (else
+                 (loop (cdr restarters)
+                       (- n 1)))))
+        ;; Silently ignore the request if it's on the wrong level.
+        ;++ Why silently?  Why not abort?
+        'nil)))
 
 (define (swank:sldb-abort)
   (cond ((find-restarter 'abort)
          => (lambda (r) (restart r)))
         (else
          (let ((session (current-swank-session)))
-           (swank-log "(session ~S, level ~S) No ABORT restarter"
-                      (swank-session-id session)
-                      (swank-session-level-number session)))
-         (abort-swank-rpc))))
+           (abort-swank-rpc "(session ~S, level ~S) No ABORT restarter"
+                            (swank-session-id session)
+                            (swank-session-level-number session))))))
 
 (define (swank:sldb-continue)
   (cond ((find-restarter 'continue)
          => (lambda (r) (restart r)))
         (else
          (let ((session (current-swank-session)))
-           (swank-log "(session ~S, level ~S) No CONTINUE restarter"
-                      (swank-session-id session)
-                      (swank-session-level-number session)))
-         (abort-swank-rpc))))
+           (abort-swank-rpc
+            "(session ~S, level ~S) No CONTINUE restarter"
+            (swank-session-id session)
+            (swank-session-level-number session))))))
 
 ;;; This is very different from what the CL Swank back end does.  I
 ;;; don't understand how that works, though.  This just picks out the
@@ -222,12 +225,24 @@
            (list-ref locals var-number))
          => inspect-object)
         (else
-         (abort-swank-rpc))))
+         (let ((session (current-swank-session)))
+           (abort-swank-rpc
+            "(session ~S, level ~S) No such frame variable (~S, ~S)"
+            (swank-session-id session)
+            (swank-session-level-number session)
+            frame-number
+            var-number)))))
 
 (define (swank:inspect-in-frame string n)
   (cond ((eval-in-sldb-frame n string)
          => inspect-results)
-        (else (abort-swank-rpc))))
+        (else
+         (let ((session (current-swank-session)))
+           (abort-swank-rpc
+            "(session ~S, level ~S) No expression to inspect: ~S"
+            (swank-session-id session)
+            (swank-session-level-number session)
+            string)))))
 
 (define (swank:eval-string-in-frame string n)
   (eval-in-sldb-frame* n string
@@ -300,7 +315,13 @@
                   (write (continuation-pc frame))
                   (newline)
                   (disassemble frame)))))
-        (else (abort-swank-rpc))))
+        (else
+         (let ((session (current-swank-session)))
+           (abort-swank-rpc
+            "(session ~S, level ~S) No such frame to disassemble: ~S"
+            (swank-session-id session)
+            (swank-session-level-number session)
+            n)))))
 
 (define (swank:frame-source-location-for-emacs n)
   (or (and-let* ((frame (sldb-frame-ref n))
