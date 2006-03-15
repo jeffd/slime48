@@ -537,6 +537,43 @@
         (with-names 0 (car shape) '())
         (with-no-names 0 '()))))
 
+;;; This is messy for the sake of robustness.  People are apt to do
+;;; pretty gross things with the low-level records layer.
+
+(define-method &inspect-object ((record :record))
+  (values "A record."
+          'record
+          (if (zero? (record-length record))
+              (list "(No contents.)")
+              (with-record-inspection record
+                (lambda ()
+                  (inspect-record record))))))
+
+(define (with-record-inspection record thunk)
+  ((call-with-current-continuation
+     (lambda (k)
+       (lambda ()
+         (with-handler (lambda (condition propagate)
+                         condition propagate
+                         (k (lambda ()
+                              (indexed-contents record
+                                                record-length
+                                                safe-record-ref))))
+           thunk))))))
+
+(define (safe-record-ref record index)
+  `(,(record-ref record index)))
+
+(define (inspect-record record)
+  (let ((type (record-type record)))
+    `("Type: " (,type) ,newline ,newline
+      ,@(append-map (lambda (field-name)
+                      `(,(name-label field-name)
+                        (,((record-accessor type field-name)
+                           record))
+                        ,newline))
+                    (record-type-field-names type)))))
+
 (define (name-label name)
   (if (symbol? name)
       name
@@ -552,6 +589,14 @@
       tail
       (append-reverse (cdr list)
                       (cons (car list) tail))))
+
+(define (append-map fn list)
+  (let loop ((in list) (out '()))
+    (if (null? in)
+        (reverse out)
+        (loop (cdr in)
+              (append-reverse (fn (car in))
+                              out)))))
 
 (define (string-upcase string)
   (let* ((len (string-length string))

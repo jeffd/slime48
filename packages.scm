@@ -232,6 +232,9 @@
         closures
         (subset debug-data (debug-data-env-shape))
         (subset disclosers (template-debug-data))
+        records
+        record-types
+        handle
         )
   (optimize auto-integrate)
   (files inspector))
