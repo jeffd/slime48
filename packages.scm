@@ -113,6 +113,7 @@
         fluids
         (subset posix-files (working-directory
                              set-working-directory!))
+        (subset sockets (get-host-name))
         swank-sessions
         )
   (optimize auto-integrate)
@@ -122,7 +123,7 @@
                                    :NAME "s48"
                                    ;; Argh!  Bad hard-coding!  Bad!
                                    :VERSION "1.3")
-             :MACHINE ()
+             :MACHINE (:INSTANCE ,(get-host-name))
              :FEATURES ()
              :PACKAGE (:NAME "(scratch)"
                        :PROMPT "(scratch)")
