@@ -21,7 +21,7 @@
   (mapconcat (lambda (line-fmt.args)
                (apply 'format (car line-fmt.args) (cdr line-fmt.args)))
              `((",set load-noisily on")
-               (",translate =slime48/ %s" ,slime48-path)
+               (",translate =slime48/ %S" ,slime48-path)
                (",exec ,load =slime48/load.scm")
                (",exec (slime48-start #t %S)\n" ,port-filename))
              "\n"))
