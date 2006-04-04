@@ -292,6 +292,7 @@
           with-ignorable-frame-template
           continuation-debug-data
           frame-preview
+          display-debug-data-names
           display-frame-source
           destructure-source-info
           eval-in-frame
