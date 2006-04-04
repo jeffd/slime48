@@ -291,11 +291,10 @@
                (let loop ((names names))
                  (if (pair? (cddr names))
                      (loop (cdr names))
-                     (find-source-location (cadr names) (car names)
-                                           hints
-                                           pkg-uid)))
-               (find-source-location (car names) #f hints
-                                     pkg-uid))))))
+                     (source-location (cadr names) (car names)
+                                      hints
+                                      pkg-uid)))
+               (source-location (car names) #f hints pkg-uid))))))
 
 (define (source-location-hints ddata pc)
   (cond ((assv pc (debug-data-source ddata))
@@ -309,25 +308,27 @@
                         '())))))
         (else '())))
 
-(define (find-source-location top def hints pkg-uid)
-  (let ((def (if def
-                 `(:FUNCTION-NAME ,(symbol->string def))
-                 'NIL)))
-    (if (string? top)
-        `(:LOCATION (:FILE ,top) ,def ,hints)
-        (and-let* ((package (uid->package pkg-uid))
-                   (filename (package-file-name package))
-                   (base (file-name-directory filename))
-                   (source-filename
-                    (any (lambda (clause)
-                           (and (eq? (car clause) 'FILES)
-                                (pair? (cdr clause))
-                                (source-file-exists? (cadr clause)
-                                                     base)))
-                         (package-clauses package))))
-          `(:LOCATION (:FILE ,source-filename)
-                      ,def
-                      ,hints)))))
+(define (source-location top def hints pkg-uid)
+  (and-let* ((filename (or (and (string? top) top)
+                           (find-package-source-filename pkg-uid))))
+    `(:LOCATION (:FILE ,filename)
+                ,(if def
+                     `(:FUNCTION-NAME ,(symbol->string def))
+                     'NIL)
+                ,hints)))
+
+(define (find-package-source-filename uid)
+  (and-let* ((package (uid->package uid))
+             (filename (package-file-name package))
+             ((not (zero? (string-length filename))))
+             (directory (file-name-directory filename)))
+    (any (lambda (clause)
+           (and (eq? (car clause) 'FILES)
+                (pair? (cdr clause))
+                (any (lambda (filespec)
+                       (source-file-exists? filespec directory))
+                     (cdr clause))))
+         (package-clauses package))))
 
 (define (any fn list)
   (and (pair? list)
@@ -336,15 +337,17 @@
 
 ;++ This is a hideous kludge.
 
-(define (source-file-exists? name base)
+(define (source-file-exists? name directory)
   (call-with-current-continuation
     (lambda (k)
       (with-handler (lambda (c punt) (if (error? c) (k #f) (punt)))
         (lambda ()
-          (let ((name (translate
-                       (namestring name base *scheme-file-type*))))
+          (let ((name (map-source-filename name directory)))
             (close-input-port (open-input-file name))
             name))))))
+
+(define (map-source-filename name directory)
+  (translate (namestring name directory *scheme-file-type*)))
 
 
 
