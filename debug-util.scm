@@ -301,7 +301,8 @@
                        (destructure-source-info source-info)
                 `(:SNIPPET ,(limited-write-to-string exp)
                   ,@(if parent
-                        `(:CALL-SITE ,(symbol->string (car parent)))
+                        `(:CALL-SITE
+                          ,(limited-write-to-string (car parent)))
                         '())))))
         (else '())))
 
