@@ -174,40 +174,35 @@
         ;++ Why silently?  Why not abort?
         'nil)))
 
-(define (swank:sldb-abort)
-  (cond ((find-restarter 'abort)
-         => (lambda (r) (restart r)))
-        (else
-         (let ((session (current-swank-session)))
-           (abort-swank-rpc "(session ~S, level ~S) No ABORT restarter"
-                            (swank-session-id session)
-                            (swank-session-level-number session))))))
-
-(define (swank:sldb-continue)
-  (cond ((find-restarter 'continue)
-         => (lambda (r) (restart r)))
+(define (sldb-restart tag restarters)
+  (cond ((find-restarter tag restarters)
+         => (lambda (r)
+              (restart r)))
         (else
          (let ((session (current-swank-session)))
            (abort-swank-rpc
-            "(session ~S, level ~S) No CONTINUE restarter"
+            "(session ~S, level ~S) No ~A restarter"
             (swank-session-id session)
-            (swank-session-level-number session))))))
+            (swank-session-level-number session)
+            (string-upcase (circular-write-to-string tag)))))))
+
+;;; Be very careful here about the ordering of the restarters:
+;;; SLDB-RESTARTERS returns them in order from outermost to innermost.
+;;; SLDB-ABORT and SLDB-CONTINUE want to use the innermost restarters.
+;;; THROW-TO-TOP-LEVEL wants to use the outermost restarter.
+
+(define (swank:sldb-abort)
+  (sldb-restart 'ABORT (reverse (sldb-restarters))))
+
+(define (swank:sldb-continue)
+  (sldb-restart 'CONTINUE (reverse (sldb-restarters))))
 
 ;;; This is very different from what the CL Swank back end does.  I
 ;;; don't understand how that works, though.  This just picks out the
 ;;; last RESET restarter, which should be the one to the top level.
 
 (define (swank:throw-to-toplevel)
-  (let loop ((rs (sldb-restarters)) (reset #f))
-    (cond ((null? rs)
-           (if reset
-               (restart reset)
-               (swank:sldb-abort)))
-          ((eq? (restarter-tag (car rs))
-                'reset)
-           (loop (cdr rs) (car rs)))
-          (else
-           (loop (cdr rs) reset)))))
+  (sldb-restart 'RESET (sldb-restarters)))
 
 (define (swank:inspect-current-condition)
   (inspect-object (sldb-condition)))
