@@ -71,8 +71,10 @@
       (set-dynamic-env! saved)
       rs)))
 
-(define (find-restarter tag)
-  (let loop ((restarters (current-restarters)))
+(define (find-restarter tag . restarters)
+  (let loop ((restarters (if (pair? restarters)
+                             (car restarters)
+                             (current-restarters))))
     (cond ((null? restarters)
            #f)
           ((eqv? (restarter-tag (car restarters)) tag)
