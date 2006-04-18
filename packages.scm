@@ -40,6 +40,7 @@
         restarting
         restarting-hooks
         (subset string-i/o (read-from-string))
+        (subset i/o (force-output))
         continuation-data-type
         fluids fluids-internal
         threads threads-internal
@@ -148,8 +149,7 @@
   (open scheme
         receiving
         string-i/o
-        (subset i/o (write-string force-output
-                     call-with-current-output-port))
+        (subset i/o (write-string call-with-current-output-port))
         (subset i/o-internal (call-with-current-output-port))
         limited-writing
         pp

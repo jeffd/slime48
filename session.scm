@@ -276,6 +276,7 @@
               (lambda ()
                 (*swank-eval form package-id session result-cell))
               (lambda ()
+                (force-output (current-output-port))
                 (if (cell-ref already-returned?)
                     (warn
                      "ignoring second return from SLIME evaluation"

@@ -11,7 +11,6 @@
     (if (eof-object? exp)
         #f
         (receive results (eval exp (interaction-environment))
-          (force-output (current-output-port))
           results))))
 
 (define (repl-eval-string* string nothing zero one many)
