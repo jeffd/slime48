@@ -53,8 +53,11 @@
     server))
 
 (define (with-slime48-port-redirection session-placeholder body)
+  ;++ What about the noise and error output ports?
   (call-with-current-output-port
-      (make-swank-output-port session-placeholder)
+      (let ((out (make-swank-output-port session-placeholder)))
+        (periodically-force-output! out)
+        out)
     (lambda ()
       (call-with-current-input-port
           (make-swank-input-port session-placeholder)

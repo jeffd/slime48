@@ -62,7 +62,8 @@
                       (subset i/o (force-output))
                       (subset i/o-internal
                               (call-with-current-output-port
-                               call-with-current-input-port))
+                               call-with-current-input-port
+                               periodically-force-output!))
                       string-i/o
                       restarting
                       handle
