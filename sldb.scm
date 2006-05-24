@@ -18,6 +18,7 @@
                         (punt))))
     thunk))
 
+(define-condition-type 'BREAKPOINT '())
 (define breakpoint? (condition-predicate 'BREAKPOINT))
 
 ; (put 'with-sldb-handler 'scheme-indent-function 1)
