@@ -288,6 +288,7 @@
         locations
         (subset transforms (transform?))
         (subset nodes (operator?))
+        (subset primops (primop?))
         posix-regexps
         (subset swank-sessions (current-swank-world
                                 abort-swank-rpc))
