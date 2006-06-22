@@ -9,86 +9,102 @@
 ;;; This differs slightly from the CL APROPOS facility because there is
 ;;; not one well-defined notion of 'exported symbol' in Scheme48, since
 ;;; multiple structures can be built on one package.  Instead, we use
-;;; the boolean flag to decide whether to search all bindings exported
-;;; by every structure in the config package, or to search all bindings
-;;; available in a certain package.
+;;; the boolean flag to decide whether to search through bindings
+;;; exported by structures available in the config package or whether
+;;; to examine the bindings visible from within a particular package.
 
-(define (swank:apropos-list-for-emacs string all? case-sensitive?
-                                      package-spec)
+(define (swank:apropos-list-for-emacs string exported? case-sensitive?
+                                      where)
   (let ((matches? (apropos-matcher string case-sensitive?))
         (world (current-swank-world)))
-    (cond ((or all?
-               (eq? package-spec 'nil))
-           (apropos-all (swank-world-config-env world) matches?))
-          ((find-package-in-swank-world
-            (if (string? package-spec)
-                (read-from-string package-spec)
-                package-spec)
-            world)
-           => (lambda (package)
-                (apropos-package package matches?)))
-          (else
-           (abort-swank-rpc
-            "(world ~S, APROPOS) No such package by name: ~A"
-            (swank-world-id world)
-            package-spec)))))
+    (let ((where (if (string? where) (read-from-string where) where)))
+      (if exported?
+          (cond ((eq? where 'nil)
+                 (apropos-all (swank-world-config-env world) matches?))
+                ((find-structure-in-swank-world where world)
+                 => (lambda (struct)
+                      (apropos-structure struct matches?)))
+                (else
+                 (abort-swank-rpc
+                  "(world ~S, APROPOS) No such structure by name: ~A"
+                  (swank-world-id world)
+                  where)))
+          (cond ((eq? where 'nil)
+                 (apropos-package (interaction-environment) matches?))
+                ((find-package-in-swank-world where world)
+                 => (lambda (package)
+                      (apropos-package package matches?)))
+                (else
+                 (abort-swank-rpc
+                  "(world ~S, APROPOS) No such package by name: ~A"
+                  (swank-world-id world)
+                  where)))))))
 
 (define (apropos-matcher string case-sensitive?)
   (cond ((zero? (string-length string))
-         (lambda (string) #t))
+         (lambda (symbol) symbol #t))
         (else
          (let ((regexp (if case-sensitive?
                            (make-regexp string)
                            (make-regexp string
                                         (regexp-option ignore-case)))))
-           (lambda (string)
-             ;; No submatches, starts line, ends line.
-             (regexp-match regexp string 0 #f #t #t))))))
-
+           (lambda (symbol)
+             (regexp-match regexp
+                           (symbol->string symbol)
+                           ;; No submatches, starts line, ends line.
+                           0 #f #t #t))))))
+
 (define (apropos-all config-env matches?)
-  (let* ((results '())
-         (push (lambda (elt) (set! results (cons elt results))))
-         (body (lambda (id binding)
-                 (if (binding? binding)
-                     (let ((loc (binding-place binding)))
-                       (if (and (location? loc)
-                                (location-assigned? loc)
-                                (structure? (contents loc)))
-                           (let ((struct (contents loc)))
-                             (for-each-export
-                              (lambda (id type binding)
-                                (*apropos id type binding
-                                          "exported by" struct
-                                          matches? push))
-                              struct))))))))
-    (for-each-definition body config-env)
-    (for-each (lambda (struct)
-                (for-each-export (lambda (id type binding)
-                                   (body id binding))
-                                 struct))
-              (package-opens config-env))
-    (apropos-postprocess results)))
+  (call-with-apropos matches?
+    (lambda (record)
+      (define (body id binding)
+        (if (binding? binding)
+            (let ((loc (binding-place binding)))
+              (if (and (location? loc)
+                       (location-assigned? loc)
+                       (structure? (contents loc)))
+                  (*apropos-structure (contents loc)
+                                      "exported by"
+                                      record)))))
+      (for-each-definition body config-env)
+      (for-each (lambda (struct)
+                  (for-each-export (lambda (id type binding)
+                                     type
+                                     (body id binding))
+                                   struct))
+                (package-opens config-env)))))
+
+(define (apropos-structure structure matches?)
+  (call-with-apropos matches?
+    (lambda (record)
+      (*apropos-structure structure "exported by" record))))
+
+(define (*apropos-structure struct message record)
+  (for-each-export (lambda (id type binding)
+                     (record id type binding message struct))
+                   struct))
 
 (define (apropos-package package matches?)
-  (let* ((results '())
-         (push (lambda (elt) (set! results (cons elt results)))))
-    (for-each-definition (lambda (id binding)
-                           (*apropos id #f binding #f #f
-                                     matches? push))
-                         package)
-    (for-each (lambda (struct)
-                (for-each-export (lambda (id type binding)
-                                   (*apropos id type binding
-                                             "imported from" struct
-                                             matches? push))
-                                 struct))
-              (package-opens package))
+  (call-with-apropos matches?
+    (lambda (record)
+      (for-each-definition (lambda (id binding)
+                             (record id #f binding #f #f))
+                           package)
+      (for-each (lambda (struct)
+                  (*apropos-structure struct "imported from" record))
+                (package-opens package)))))
+
+(define (call-with-apropos matches? collector)
+  (let ((results '()))
+    (define (apropos-record id exported-type binding message struct)
+      (let ((symbol (name->symbol id)))
+        (if (and (binding? binding)
+                 (matches? symbol))
+            (set! results
+                  (cons (list id exported-type binding message struct)
+                        results)))))
+    (collector apropos-record)
     (apropos-postprocess results)))
-
-(define (*apropos id exported-type binding msg struct matches? push)
-  (if (and (binding? binding)
-           (matches? (symbol->string id)))
-      (push (list id exported-type binding msg struct))))
 
 (define (apropos-postprocess results)
   (let loop ((results (sort-list! results apropos-result<?))
@@ -131,13 +147,7 @@
                        (< suid-a suid-b))))
               #f)
           (if struct-b #t (id<?))))))
-
-(define (append-reverse list tail)
-  (if (null? list)
-      tail
-      (append-reverse (cdr list)
-                      (cons (car list) tail))))
-
+
 (define (postprocess-result result)
   (destructure (((id exported-type binding msg struct) result))
     `(:DESIGNATOR
