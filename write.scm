@@ -23,48 +23,43 @@
               $write-breadth (make-cell breadth)
     thunk))
 
-;++ I really don't like the name `circular'; it has nothing to do with
-;++ circularity, only shared references.  But CL set precedent with
-;++ *PRINT-CIRCLE*, and I accidentally called the procedure
-;++ CIRCULAR-WRITE a while ago.  Foo.
-
 (define $write-limited? (make-fluid (make-cell #t)))
-(define $write-circular? (make-fluid (make-cell #t)))
+(define $write-shared? (make-fluid (make-cell #t)))
 
 (define (write-limited?) (fluid-cell-ref $write-limited?))
-(define (write-circular?) (fluid-cell-ref $write-circular?))
+(define (write-shared?) (fluid-cell-ref $write-shared?))
 (define (set-write-limited?! t) (fluid-cell-set! $write-limited? t))
-(define (set-write-circular?! s) (fluid-cell-set! $write-circular? s))
+(define (set-write-shared?! s) (fluid-cell-set! $write-shared? s))
 
 (define (limited-write obj port)
   (with-limited-writing (lambda () (extended-write obj port))))
 
-(define (circular-write obj port)
-  (with-circular-writing (lambda () (extended-write obj port))))
+(define (shared-write obj port)
+  (with-shared-writing (lambda () (extended-write obj port))))
 
 (define (hybrid-write obj port)
   (with-hybrid-writing (lambda () (extended-write obj port))))
 
 (define (with-limited-writing thunk)
   (let-fluids $write-limited? (make-cell #t)
-              $write-circular? (make-cell #f)
+              $write-shared? (make-cell #f)
     thunk))
 
-(define (with-circular-writing thunk)
+(define (with-shared-writing thunk)
   (let-fluids $write-limited? (make-cell #f)
-              $write-circular? (make-cell #t)
+              $write-shared? (make-cell #t)
     thunk))
 
 (define (with-hybrid-writing thunk)
   (let-fluids $write-limited? (make-cell #t)
-              $write-circular? (make-cell #t)
+              $write-shared? (make-cell #t)
     thunk))
 
 (define (with-preserved-writing thunk)
   (let-fluids $write-depth (fluid-cell-ref $write-depth)
               $write-breadth (fluid-cell-ref $write-breadth)
               $write-limited? (fluid-cell-ref $write-limited?)
-              $write-circular? (fluid-cell-ref $write-circular?)
+              $write-shared? (fluid-cell-ref $write-shared?)
     thunk))
 
 (define (write-atomic? datum)
@@ -79,9 +74,9 @@
 (define (extended-write obj port)
   (let ((max-depth (and (write-limited?) (write-depth)))
         (max-breadth (and (write-limited?) (write-breadth)))
-        (circular? (write-circular?)))
+        (shared? (write-shared?)))
     (let ((shared-data
-           (and circular?
+           (and shared?
                 (compute-shared-data obj max-depth max-breadth))))
 
       (define (write-shared obj entry depth)

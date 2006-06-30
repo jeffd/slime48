@@ -297,7 +297,7 @@
                            #f)
                           => (lambda (location)
                                ;; One location -> one-element list.
-                               `((,(circular-write-to-string
+                               `((,(shared-write-to-string
                                     (debug-data-name
                                      (template-debug-data
                                       (closure-template value))))
@@ -499,7 +499,7 @@
     (define (pp-to-string               obj) (to-string obj p))
     (define (extended-write-to-string   obj) (to-string obj extended-write))
     (define (limited-write-to-string    obj) (to-string obj limited-write))
-    (define (circular-write-to-string   obj) (to-string obj circular-write))
+    (define (shared-write-to-string     obj) (to-string obj shared-write))
     (define (hybrid-write-to-string     obj) (to-string obj hybrid-write))
     ))
 

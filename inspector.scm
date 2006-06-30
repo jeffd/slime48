@@ -172,7 +172,7 @@
 (define-method &inspect-object (obj)
   (values "An indeterminate object."
           'object
-          `(,(circular-write-to-string obj))))
+          `(,(shared-write-to-string obj))))
 
 (define-method &inspect-object ((obj :zero-values))
   (values "Zero return values."
@@ -577,7 +577,7 @@
 (define (name-label name)
   (if (symbol? name)
       name
-      (string-append (circular-write-to-string name)
+      (string-append (shared-write-to-string name)
                      ": ")))
 
 

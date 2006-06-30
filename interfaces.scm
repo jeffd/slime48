@@ -360,7 +360,7 @@
           write-to-string
           pp-to-string
           extended-write-to-string
-          circular-write-to-string
+          shared-write-to-string
           limited-write-to-string
           hybrid-write-to-string
           ))
@@ -369,7 +369,7 @@
   (export
     extended-write
     limited-write
-    circular-write
+    shared-write
     hybrid-write
     $write-depth
     $write-breadth
@@ -379,13 +379,13 @@
     set-write-breadth!
     with-writing-limits
     $write-limited?
-    $write-circular?
+    $write-shared?
     write-limited?
-    write-circular?
+    write-shared?
     set-write-limited?!
-    set-write-circular?!
+    set-write-shared?!
     with-limited-writing
-    with-circular-writing
+    with-shared-writing
     with-hybrid-writing
     with-preserved-writing
     ))

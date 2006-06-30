@@ -27,7 +27,7 @@
                               ", #o" (number->string v 8)
                               ", #b" (number->string v 2)
                               ")")
-               (circular-write-to-string v))))
+               (shared-write-to-string v))))
         (else
          (delimited-object-list-string results
                                        limited-write
@@ -72,7 +72,7 @@
          => (lambda (results)
               (if (swank-repl-presentations?)
                   (repl-present results)
-                  `(:VALUES ,(map circular-write-to-string results)))))
+                  `(:VALUES ,(map shared-write-to-string results)))))
         (else '(:SUPPRESS-OUTPUT))))
 
 (define (repl-present results)
@@ -82,7 +82,7 @@
          (presentations '()))
       (begin (weak-table-set! table id (canonicalize-false result))
              (values (+ id 1)
-                     `((,(circular-write-to-string result)
+                     `((,(shared-write-to-string result)
                         . ,id)
                        ,@presentations)))
       (begin (set-swank-repl-presentation-id! id)
@@ -173,7 +173,7 @@
                                     package)))
                       (warn "package identification mismatch"
                             id package))
-                  (list id (circular-write-to-string
+                  (list id (shared-write-to-string
                             (or name
                                 (package-uid package)))))))
           (else (abort-swank-rpc
