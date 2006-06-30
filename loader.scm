@@ -121,7 +121,7 @@
                                    => record-swank-compiler-note))
                             (punt))
                         continuation)))
-            (list (limited-write-to-string result)
+            (list (hybrid-write-to-string result)
                   (milliseconds->time-string milliseconds))))))))
 
 (define (condition->compiler-note condition)

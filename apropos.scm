@@ -169,7 +169,8 @@
 
 (define (syntactic-binding id binding)
   (let* ((static (binding-static binding))
-         (win (lambda (type) `(,type ,(write-to-string static)))))
+         (win (lambda (type)
+                `(,type ,(hybrid-write-to-string static)))))
     (cond ((transform? static) (win ':MACRO))
           ((operator?  static) (win ':SPECIAL-OPERATOR))
           (else (warn "funny syntactic binding"
@@ -188,7 +189,7 @@
                 (let ((loc (binding-place binding)))
                   (if (location? loc)
                       (cond ((location-assigned? loc)
-                             (limited-write-to-string (contents loc)))
+                             (hybrid-write-to-string (contents loc)))
                             ((location-defined? loc)
                              "[unassigned]")
                             (else

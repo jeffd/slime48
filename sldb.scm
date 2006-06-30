@@ -54,7 +54,7 @@
 (define (sldb-restarter-listing)
   (map (lambda (restarter)
          (list (string-upcase           ; CL convention
-                (shared-write-to-string (restarter-tag restarter)))
+                (hybrid-write-to-string (restarter-tag restarter)))
                (restarter-description restarter)))
        (sldb-restarters)))
 
@@ -185,7 +185,7 @@
             "(session ~S, level ~S) No ~A restarter"
             (swank-session-id session)
             (swank-session-level-number session)
-            (string-upcase (shared-write-to-string tag)))))))
+            (string-upcase (hybrid-write-to-string tag)))))))
 
 ;;; Be very careful here about the ordering of the restarters:
 ;;; SLDB-RESTARTERS returns them in order from outermost to innermost.
@@ -276,11 +276,11 @@
                   ;; out here manually.
                   (name->symbol (generated-name name)))
                  (else                  ; bizarre name
-                  (limited-write-to-string name)))
+                  (hybrid-write-to-string name)))
     :ID ,(if (generated? name)
              (generated-uid name)
              0)
-    :VALUE ,(limited-write-to-string value)))
+    :VALUE ,(hybrid-write-to-string value)))
 
 (define (swank:sldb-disassemble n)
   (cond ((sldb-frame-ref n)

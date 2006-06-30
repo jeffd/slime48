@@ -130,8 +130,8 @@
                       (write-string title output-port)
                       (newline output-port)
                       (newline output-port)
-                      (limited-write (current-inspector-object)
-                                     output-port)))
+                      (hybrid-write (current-inspector-object)
+                                    output-port)))
         :TYPE    ,(string-upcase (symbol->string type))
         :CONTENT ,contents))))
 
@@ -150,7 +150,7 @@
               (destructure (( (obj . printed) item))
                 `(:VALUE ,(if (string? printed)
                               printed
-                              (limited-write-to-string obj))
+                              (hybrid-write-to-string obj))
                          ,(xvector-push! parts obj))))
              (else
               (error "invalid inspection listing item"
@@ -172,6 +172,11 @@
 (define-method &inspect-object (obj)
   (values "An indeterminate object."
           'object
+          ;; In the title is limited output; show the *whole* output
+          ;; here, but be sure to terminate on circular structures.
+          ;++ What we really want is a pretty-printer that can show
+          ;++ shared structure as well, but we don't have that at the
+          ;++ moment.
           `(,(shared-write-to-string obj))))
 
 (define-method &inspect-object ((obj :zero-values))
@@ -577,7 +582,7 @@
 (define (name-label name)
   (if (symbol? name)
       name
-      (string-append (shared-write-to-string name)
+      (string-append (hybrid-write-to-string name)
                      ": ")))
 
 

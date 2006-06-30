@@ -297,7 +297,7 @@
                            #f)
                           => (lambda (location)
                                ;; One location -> one-element list.
-                               `((,(shared-write-to-string
+                               `((,(hybrid-write-to-string
                                     (debug-data-name
                                      (template-debug-data
                                       (closure-template value))))

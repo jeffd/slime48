@@ -27,10 +27,10 @@
                               ", #o" (number->string v 8)
                               ", #b" (number->string v 2)
                               ")")
-               (shared-write-to-string v))))
+               (hybrid-write-to-string v))))
         (else
          (delimited-object-list-string results
-                                       limited-write
+                                       hybrid-write
                                        ", "))))
 
 (define (swank:interactive-eval-region string)
@@ -50,7 +50,8 @@
         (cond ((repl-eval-string string)
                => (lambda (vals)
                     (list (string-output-port-output port)
-                          (delimited-object-list-string vals write
+                          (delimited-object-list-string vals
+                                                        hybrid-write
                                                         newline))))
               (else (list "" "; Nothing to evaluate")))))))
 
@@ -173,7 +174,7 @@
                                     package)))
                       (warn "package identification mismatch"
                             id package))
-                  (list id (shared-write-to-string
+                  (list id (hybrid-write-to-string
                             (or name
                                 (package-uid package)))))))
           (else (abort-swank-rpc

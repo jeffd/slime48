@@ -180,7 +180,7 @@
      (set-contents! loc (car args)))))
 
 (define (location-name-as-string loc)
-  (string-upcase (shared-write-to-string (location-name loc))))
+  (string-upcase (hybrid-write-to-string (location-name loc))))
 
 (define (string-upcase string)
   (let* ((len (string-length string))
