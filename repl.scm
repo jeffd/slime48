@@ -13,15 +13,6 @@
         (receive results (eval exp (interaction-environment))
           results))))
 
-(define (repl-eval-string* string nothing zero one many)
-  (let ((results (repl-eval-string string)))
-    (cond ((not        results)  (nothing))
-          ((null?      results)  (zero))
-          ((null? (cdr results)) (one (car results)))
-          (else                  (many results)))))
-
-; (put 'repl-eval-string* 'scheme-indent-function 1)
-
 (define (swank:interactive-eval string)
   (interactive-eval-results (repl-eval-string string)))
 
@@ -64,12 +55,17 @@
               (else (list "" "; Nothing to evaluate")))))))
 
 (define (swank:pprint-eval string)
-  (repl-eval-string* string
-    (lambda () "; Nothing to evaluate")
-    (lambda () "; No value")
-    (lambda (v) (pp-to-string v))
-    (lambda (vals)
-      (delimited-object-list-string vals p ""))))
+  (pprint-eval-results (repl-eval-string string)))
+
+(define (pprint-eval-results results)
+  (cond ((not   results) "; Nothing to evaluate")
+        ((null? results) "; No value")
+        ((null? (cdr results))
+         (pp-to-string (car results)))
+        (else
+         ;; The pretty-printer emits trailing newlines, so we need no
+         ;; separator of our own here.
+         (delimited-object-list-string results p ""))))
 
 (define (swank:listener-eval string)
   (cond ((repl-eval-string string)

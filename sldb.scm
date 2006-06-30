@@ -230,7 +230,7 @@
             var-number)))))
 
 (define (swank:inspect-in-frame string n)
-  (cond ((eval-in-sldb-frame n string)
+  (cond ((eval-in-sldb-frame string n)
          => inspect-results)
         (else
          (let ((session (current-swank-session)))
@@ -241,23 +241,12 @@
             string)))))
 
 (define (swank:eval-string-in-frame string n)
-  (eval-in-sldb-frame* n string
-    (lambda () "; Nothing to evaluate")
-    (lambda () "; No values")
-    (lambda (v)
-      (limited-write-to-string v))
-    (lambda (vals)
-      (delimited-object-list-string vals limited-write ","))))
+  (interactive-eval-results (eval-in-sldb-frame string n)))
 
 (define (swank:pprint-eval-string-in-frame string n)
-  (eval-in-sldb-frame* n string
-    (lambda () "; Nothing to evaluate")
-    (lambda () "; No values")
-    (lambda (v) (pp-to-string v))
-    (lambda (vals)
-      (delimited-object-list-string vals p ""))))
+  (pprint-eval-results (eval-in-sldb-frame string n)))
 
-(define (eval-in-sldb-frame n string)
+(define (eval-in-sldb-frame string n)
   (cond ((sldb-frame-ref n)
          => (lambda (frame)
               (let ((exp (read-from-string string)))
@@ -267,15 +256,6 @@
                       results)))))
         (else
          (repl-eval-string string))))
-
-(define (eval-in-sldb-frame* n string nothing zero one many)
-  (let ((results (eval-in-sldb-frame n string)))
-    (cond ((not results) (nothing))
-          ((null? results) (zero))
-          ((null? (cdr results)) (one (car results)))
-          (else (many results)))))
-
-; (put 'eval-in-sldb-frame* 'scheme-indent-function 2)
 
 ;;; No such thing as a catch tag in Scheme.
 

@@ -97,7 +97,8 @@
 
 (define-interface swank-repl-interface
   (export repl-eval-string
-          repl-eval-string*
+          interactive-eval-results
+          pprint-eval-results
           delimited-object-list-string  ; This should go elsewhere.
           swank-repl-presentations?
           enable-swank-repl-presentations
