@@ -127,7 +127,7 @@
         string-i/o
         (subset i/o (write-string call-with-current-output-port))
         (subset i/o-internal (call-with-current-output-port))
-        limited-writing
+        extended-writing
         pp
         simple-signals
         weak-utilities
@@ -157,7 +157,7 @@
         threads
         threads-internal
         string-i/o
-        limited-writing
+        extended-writing
         pp
         continuations
         debugger-utilities
@@ -185,7 +185,7 @@
         receiving
         destructuring
         string-i/o
-        limited-writing
+        extended-writing
         (subset i/o (write-string))
         simple-signals
         xvectors
@@ -426,7 +426,7 @@
         (subset disclosers (template-debug-data debug-data-names))
         debug-data
         string-i/o
-        limited-writing
+        extended-writing
         ;; The next two are for constructing expressions in arbitrary
         ;; environments, maintaining invariants of Scheme forms.
         (subset nodes (get-operator))
@@ -479,47 +479,40 @@
         extended-ports
         (subset i/o-internal (call-with-current-output-port))
         pp
-        circular-writing
-        limited-writing
+        extended-writing
         )
   (optimize auto-integrate)
-  (begin (define (with-output-to-string thunk)
-           (call-with-string-output-port
-             (lambda (port)
-               (call-with-current-output-port port
-                 thunk))))
-         (define (read-from-string string)
-           (read (make-string-input-port string)))
-         (define (print-to-string obj printer)
-           (call-with-string-output-port (lambda (port)
-                                           (printer obj port))))
-         (define (display-to-string obj) (print-to-string obj display))
-         (define (write-to-string   obj) (print-to-string obj write))
-         (define (pp-to-string      obj) (print-to-string obj p))
-         (define (circular-write-to-string obj)
-           (print-to-string obj circular-write))
-         (define (limited-write-to-string obj)
-           (print-to-string obj limited-write))
-         ))
+  (begin
+    (define (with-output-to-string thunk)
+      (call-with-string-output-port
+        (lambda (port)
+          (call-with-current-output-port port
+            thunk))))
+    (define (read-from-string string)
+      (read (make-string-input-port string)))
+    (define (to-string obj outputter)
+      (call-with-string-output-port
+        (lambda (port)
+          (outputter obj port))))
+    (define (display-to-string          obj) (to-string obj display))
+    (define (write-to-string            obj) (to-string obj write))
+    (define (pp-to-string               obj) (to-string obj p))
+    (define (extended-write-to-string   obj) (to-string obj extended-write))
+    (define (limited-write-to-string    obj) (to-string obj limited-write))
+    (define (circular-write-to-string   obj) (to-string obj circular-write))
+    (define (hybrid-write-to-string     obj) (to-string obj hybrid-write))
+    ))
 
-(define-structure circular-writing (export circular-write)
+(define-structure extended-writing extended-writing-interface
   (open scheme
-        writing
-        i/o
-        )
-  (optimize auto-integrate)
-  (files circwrite))
-
-(define-structure limited-writing limited-writing-interface
-  (open scheme
-        (modify display-conditions
-                (prefix s48-)
-                (expose limited-write))
         fluids
         cells
+        writing
+        simple-signals
+        (subset i/o (make-null-output-port write-string))
         )
   (optimize auto-integrate)
-  (files limwrite))
+  (files write))
 
 (define-structure destructure-case
     (export (destructure-case :syntax)

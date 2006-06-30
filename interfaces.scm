@@ -359,17 +359,36 @@
           display-to-string
           write-to-string
           pp-to-string
+          extended-write-to-string
           circular-write-to-string
           limited-write-to-string
+          hybrid-write-to-string
           ))
 
-(define-interface limited-writing-interface
-  (export limited-write
-          write-depth  set-write-depth!
-          write-length set-write-length!
-          with-limited-output
-          saving-output-limits
-          ))
+(define-interface extended-writing-interface
+  (export
+    extended-write
+    limited-write
+    circular-write
+    hybrid-write
+    $write-depth
+    $write-breadth
+    write-depth
+    write-breadth
+    set-write-depth!
+    set-write-breadth!
+    with-writing-limits
+    $write-limited?
+    $write-circular?
+    write-limited?
+    write-circular?
+    set-write-limited?!
+    set-write-circular?!
+    with-limited-writing
+    with-circular-writing
+    with-hybrid-writing
+    with-preserved-writing
+    ))
 
 (define-interface continuation-data-type-interface
   (export reify-continuation
