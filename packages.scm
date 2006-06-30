@@ -118,31 +118,7 @@
         swank-sessions
         )
   (optimize auto-integrate)
-  (begin (define (swank:connection-info)
-           `(:STYLE :SPAWN
-             :LISP-IMPLEMENTATION (:TYPE "Scheme 48"
-                                   :NAME "s48"
-                                   ;; Argh!  Bad hard-coding!  Bad!
-                                   :VERSION "1.3")
-             :MACHINE (:INSTANCE ,(get-host-name))
-             :FEATURES ()
-             :PACKAGE (:NAME "(scratch)"
-                       :PROMPT "(scratch)")
-             ))
-
-         (define $swank-quitter
-                 (make-fluid terminate-current-swank-session))
-         (define (with-swank-quitter quitter thunk)
-           (let-fluid $swank-quitter quitter thunk))
-         (define (swank:quit-lisp)
-           ((fluid $swank-quitter)))
-
-         (define (swank:default-directory)
-           (working-directory))
-         (define (swank:set-default-directory dir)
-           (set-working-directory! dir)
-           dir)
-         ))
+  (files general))
 
 (define-structures ((swank-repl swank-repl-interface)
                     (swank-repl-rpc swank-repl-rpc-interface))
