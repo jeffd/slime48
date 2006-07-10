@@ -39,22 +39,21 @@
   (swank:compile-file-for-emacs filename load?))
 
 (define (swank:compile-string-for-emacs string buffer pos dir)
-  (let ((filename (and buffer (namestring buffer dir #f))))
-    (with-swank-compiler
-      (lambda ()
-        (let* ((package (interaction-environment))
-               (cenv (let ((cenv (package->environment package)))
-                       (if filename
-                           (bind-source-file-name filename cenv)
-                           cenv)))
-               (template (swank-compile-forms
-                          (read-all (make-string-input-port string))
-                          package
-                          cenv
-                          (and buffer (namestring buffer dir #f)))))
-          (swank-run-template template
-                              (package-uid package)))
-        '()))))
+  (with-swank-compiler
+    (lambda ()
+      (let* ((package (interaction-environment))
+             (cenv (let ((cenv (package->environment package)))
+                     (if dir
+                         (bind-source-file-name dir cenv)
+                         cenv)))
+             (template (swank-compile-forms
+                        (read-all (make-string-input-port string))
+                        package
+                        cenv
+                        `(BUFFER ,buffer POSITION ,pos))))
+        (swank-run-template template
+                            (package-uid package)))
+      '())))
 
 
 
