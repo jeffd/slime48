@@ -634,6 +634,42 @@
       (string-append (hybrid-write-to-string name)
                      ": ")))
 
+;++ Argh, this is a hack that should not be necessary.
+;++ What should the supertype be?  :VALUE or :RECORD?
+
+(define-simple-type :table (:value) table?)
+
+(define-method &inspect-object ((table :table))
+  (values "A hash table."
+          'table
+          `("Size: " (,(table-size table)) ,newline
+            ,@(let ((entries '()))
+                (table-walk (lambda (key datum)
+                              (set! entries
+                                    (append-reverse
+                                     `(,newline (,key) ,newline
+                                                "  =>" ,newline
+                                                (,datum) ,newline)
+                                     entries)))
+                            table)
+                (reverse entries)))))
+
+(define-simple-type :debug-data (:value) debug-data?)
+
+(define-method &inspect-object ((ddata :debug-data))
+  (values "A debugging information record."
+          'debug-data
+          (let ((id (debug-data-uid ddata))
+                (names (debug-data-names ddata))
+                (parent (get-debug-data (debug-data-parent ddata)))
+                (env-maps (debug-data-env-maps ddata))
+                (source (debug-data-source ddata)))
+            `("Template ID: " (,id) ,newline
+              "Names: " (,names) ,newline
+              "Parent: " (,parent) ,newline
+              "Environment maps: " (,env-maps) ,newline
+              "Source: " (,source) ,newline))))
+
 
 
 ;;; Random utilities
