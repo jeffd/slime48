@@ -170,14 +170,23 @@
 (define-generic really-inspect-object &inspect-object (object))
 
 (define-method &inspect-object (obj)
-  (values "An indeterminate object."
-          'object
-          ;; In the title is limited output; show the *whole* output
-          ;; here, but be sure to terminate on circular structures.
-          ;++ What we really want is a pretty-printer that can show
-          ;++ shared structure as well, but we don't have that at the
-          ;++ moment.
-          `(,(shared-write-to-string obj))))
+  (cond ((disclose obj)
+         => (lambda (type.components)
+              (values "An object."
+                      (car type.components)
+                      (append-map (lambda (x)
+                                    `((,x) ,newline))
+                                  (cdr type.components)))))
+        (else
+         (values "An indeterminate object."
+                 'object
+                 ;; In the title is limited output; show the *whole*
+                 ;; output here, but be sure to terminate on circular
+                 ;; structures.
+                 ;++ What we really want is a pretty-printer that can
+                 ;++ show shared structure as well, but we don't have
+                 ;++ that at the moment.
+                 `(,(shared-write-to-string obj))))))
 
 (define-method &inspect-object ((obj :zero-values))
   (values "Zero return values."
