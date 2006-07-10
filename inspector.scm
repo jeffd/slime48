@@ -288,7 +288,10 @@
 (define-method &inspect-object ((vector :vector))
   (values "A vector."
           'vector
-          (indexed-contents vector vector-length safe-vector-ref)))
+          `("Length: " ,(vector-length vector)
+            "Contents:"
+            ,@(indexed-contents vector 0 (vector-length vector)
+                                safe-vector-ref))))
 
 (define (safe-vector-ref vector index)
   (if (vector-unassigned? vector index)
@@ -298,25 +301,52 @@
 (define-method &inspect-object ((template :template))
   (values "A closure template (compiled code)."
           'template
-          `(,@(indexed-contents template template-length
-                                safe-template-ref)
-            ,newline ,newline "Disassembly:" ,newline
-            ,(with-output-to-string
-               (lambda ()
-                 (disassemble template))))))
+          `("Length: " (,(template-length template)) ,newline
+            ,@(template-header template)
+            "Contents:"
+            ,@(template-contents template)
+            ,@(template-disassembly template))))
+
+(define (template-disassembly template)
+  (list newline newline "Disassembly:" newline
+        (with-output-to-string
+          (lambda ()
+            (disassemble template)))))
+
+(define (template-header template)
+  `("Template ID: " (,(template-id template)) ,newline
+    "Debug data: " (,(template-debug-data template)) ,newline
+    "Package: " (,(template-package template)) ,newline))
+
+(define (template-package template)
+  (let ((uid (template-package-id template)))
+    (or (uid->package uid)
+        uid)))
+
+(define (template-contents template)
+  (append (indexed-contents template 0 template-overhead
+                            safe-template-ref)
+          (template-constant-contents template)))
+
+(define (template-constant-contents template)
+  (if (= (template-length template) template-overhead)
+      '()
+      `(,newline
+        " Constants:"                   ;Indent it slightly
+        ,@(indexed-contents template
+                            template-overhead
+                            (template-length template)
+                            safe-template-ref))))
 
 (define (safe-template-ref template index)
   `(,(template-ref template index)))
 
-(define (indexed-contents object length ref)
-  (let ((len (length object)))
-    `("Length: " (,len) ,newline
-      "Contents:"
-      ,@(reduce ((count* i 0 len))
-            ((items '()))
-          (append-reverse `(,newline ,i ,(ref object i))
-                          items)
-          (reverse items)))))
+(define (indexed-contents object start length ref)
+  (reduce ((count* i start length))
+      ((items '()))
+    (append-reverse `(,newline ,i ,(ref object i))
+                    items)
+    (reverse items)))
 
 ;;; Byte vectors we display very fancily.
 
@@ -518,16 +548,23 @@
           'closure
           (let ((template (closure-template closure))
                 (env (closure-env closure)))
-            `(,@(if (or (not env) (zero? (vector-length env)))
+            `(,@(template-header template)
+              "Template (length " (,(template-length template))
+              "): " (,template)
+              ,@(template-contents template)
+              ,@(if (or (not env) (zero? (vector-length env)))
                     '()
-                    `("Environment:"
+                    `(,newline ,newline
+                      "Environment:"
                       ,@(inspect-environment
                          env
                          (debug-data-env-shape
                           (template-debug-data template)
-                          #f))          ; No PC
-                      ,newline ,newline))
-              "Template: " (,template)))))
+                          #f))))        ; No PC
+              ;++ What about components other than the template and the
+              ;++ environment?  These can come up with peculiar hacks,
+              ;++ and it might be nice to generalize to them.
+              ,@(template-disassembly template)))))
 
 (define (inspect-environment env shape)
   (let ((len (vector-length env)))
@@ -571,7 +608,8 @@
                          condition propagate
                          (k (lambda ()
                               (indexed-contents record
-                                                record-length
+                                                0
+                                                (record-length record)
                                                 safe-record-ref))))
            thunk))))))
 

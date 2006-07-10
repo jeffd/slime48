@@ -190,6 +190,7 @@
         simple-signals
         xvectors
         methods
+        module-control
         reduce                 ; looping macros
         swank-sessions
         swank-repl
@@ -206,11 +207,12 @@
                                ;++ to be replaced.
         byte-vectors
         closures
-        (subset debug-data (debug-data-env-shape))
-        (subset disclosers (template-debug-data))
+        debug-data
+        disclosers
         records
         record-types
         handle
+        tables
         )
   (optimize auto-integrate)
   (files inspector))
