@@ -223,8 +223,11 @@
 (define-structure swank-arglist-rpc swank-arglist-rpc-interface
   (open scheme)
   (optimize auto-integrate)
-  (begin (define (swank:arglist-for-echo-area names)
+  (begin (define (swank:arglist-for-echo-area names . options)
            'nil)
+         (define :print-right-margin ':print-right-margin)
+         (define :print-lines ':print-lines)
+         (define :arg-indices ':arg-indices)
          (define (swank:variable-desc-for-echo-area name)
            'nil)
          (define (swank:arglist-for-insertion name)

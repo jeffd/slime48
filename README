@@ -50,11 +50,6 @@ file:
                           scheme48-package)
                      (setq slime-buffer-package scheme48-package)))))
 
-  ;; This disables a feature of SLIME that is not implemented in
-  ;; SLIME48.  The feature was harmless before, but recent changes to
-  ;; it in SLIME CVS made it harmful.
-  (setq slime-space-information-p nil)
-
 ** Starting SLIME48
 
 To start up SLIME48, then, type M-- M-x slime RET s48 RET.

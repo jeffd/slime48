@@ -180,6 +180,9 @@
 
 (define-interface swank-arglist-rpc-interface
   (export swank:arglist-for-echo-area
+          :print-right-margin           ;++ This is a real crock.
+          :print-lines
+          :arg-indices
           swank:variable-desc-for-echo-area
           swank:arglist-for-insertion
           swank:complete-form
