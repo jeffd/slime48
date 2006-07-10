@@ -201,7 +201,7 @@
             (reduce ((list* val vals)
                      (count* i 0))
                 ((contents '()))
-              (append-reverse `(,i (,val)) contents)
+              (append-reverse `(,i (,val) ,newline) contents)
 
               (reverse contents)))))
 
@@ -211,16 +211,16 @@
 
 (define-method &inspect-object ((symbol :symbol))
   (values "A symbol." 'symbol
-          `("String: " (,(symbol->string symbol)))))
+          `("String: " (,(symbol->string symbol)) ,newline)))
 
 (define-method &inspect-object ((string :string))
-  (values "A string." 'string `("\"" ,string "\"")))
+  (values "A string." 'string '()))
 
 (define-method &inspect-object ((char :char))
-  (values "A character." 'char `("#\\" ,char)))
+  (values "A character." 'char '()))
 
 (define-method &inspect-object ((boolean :boolean))
-  (values "A boolean." 'boolean `(,(if boolean "#t" "#f"))))
+  (values "A boolean." 'boolean '()))
 
 (define-method &inspect-object ((obj :eof-object))
   (values "The end of file object." 'eof-object '()))
@@ -228,30 +228,30 @@
 (define-method &inspect-object ((loc :location))
   (values "A location (top-level variable cell)."
           'location
-          `("Contents: " (,(contents loc)))))
+          `("Contents: " (,(contents loc)) ,newline)))
 
 (define-method &inspect-object ((cell :cell))
   (values "A cell."
           'cell
           `("Value: " ,(if (cell-unassigned? cell)
                            "{unassigned}"
-                           (list (cell-ref cell))))))
+                           (list (cell-ref cell)))
+            ,newline)))
 
 (define-method &inspect-object ((weak :weak-pointer))
   (values "A weak pointer."
           'weak-pointer
-          `("Ref: " (,(weak-pointer-ref weak)))))
+          `("Ref: " (,(weak-pointer-ref weak)) ,newline)))
 
 
 
 ;;; Numbers
 
 (define (number-in-radices number)
-  `(,(number->string number) ,newline
-    "Binary: #b" ,(number->string number 2) ,newline
+  `("Binary: #b" ,(number->string number 2) ,newline
     "Octal: #o" ,(number->string number 8) ,newline
     "Decimal: #d" ,(number->string number 10) ,newline
-    "Hexadecimal: #x" ,(number->string number 16)))
+    "Hexadecimal: #x" ,(number->string number 16) ,newline))
 
 (define-method &inspect-object ((number :number))
   (values "A number."
@@ -262,7 +262,7 @@
   (values "A complex number."
           'complex
           `("Real part: " (,(real-part complex)) ,newline
-            "Imaginary part: " (,(imag-part complex)))))
+            "Imaginary part: " (,(imag-part complex)) ,newline)))
 
 (define-method &inspect-object ((real :real))
   (values "A real number."
@@ -274,7 +274,7 @@
   (values "A rational number."
           'rational
           `("Numerator: " (,(numerator rational)) ,newline
-            "Denominator: " (,(denominator rational)))))
+            "Denominator: " (,(denominator rational)) ,newline)))
 
 (define-method &inspect-object ((integer :integer))
   (values "An integer."
@@ -288,8 +288,8 @@
 (define-method &inspect-object ((vector :vector))
   (values "A vector."
           'vector
-          `("Length: " ,(vector-length vector)
-            "Contents:"
+          `("Length: " ,(vector-length vector) ,newline
+            "Contents:" ,newline
             ,@(indexed-contents vector 0 (vector-length vector)
                                 safe-vector-ref))))
 
@@ -303,12 +303,12 @@
           'template
           `("Length: " (,(template-length template)) ,newline
             ,@(template-header template)
-            "Contents:"
+            "Contents:" ,newline
             ,@(template-contents template)
             ,@(template-disassembly template))))
 
 (define (template-disassembly template)
-  (list newline newline "Disassembly:" newline
+  (list newline "Disassembly:" newline
         (with-output-to-string
           (lambda ()
             (disassemble template)))))
@@ -331,8 +331,8 @@
 (define (template-constant-contents template)
   (if (= (template-length template) template-overhead)
       '()
-      `(,newline
-        " Constants:"                   ;Indent it slightly
+      `(" Constants:"                   ;Indent it slightly
+        ,newline
         ,@(indexed-contents template
                             template-overhead
                             (template-length template)
@@ -344,7 +344,7 @@
 (define (indexed-contents object start length ref)
   (reduce ((count* i start length))
       ((items '()))
-    (append-reverse `(,newline ,i ,(ref object i))
+    (append-reverse `(,i ,(ref object i) ,newline)
                     items)
     (reverse items)))
 
@@ -360,17 +360,17 @@
                                    ", #o" (number->string len 8)
                                    ", #x" (number->string len 16)
                                    ")")) ,newline
-              "Contents:"
+              "Contents:" ,newline
               ,@(if (< len 16)
                     (reduce ((count* i 0 len))
                         ((items '()))
-                      (append-reverse `(,newline ,i
-                                        ,(string-pad
-                                          (number->string
-                                           (byte-vector-ref bytev i)
-                                           16)
-                                          2
-                                          #\0))
+                      (append-reverse `(,i ,(string-pad
+                                             (number->string
+                                              (byte-vector-ref bytev i)
+                                              16)
+                                             2
+                                             #\0)
+                                           ,newline)
                                       items)
                       (reverse items))
                     (byte-vector-inspector-listing bytev))))))
@@ -405,7 +405,7 @@
                             "  "
                             contents)))
         (cond ((= i len)
-               (reverse (if (= i j) (cons newline contents) contents)))
+               (reverse (cons newline contents)))
               ((= i j)
                (outer-loop j (cons newline contents)))
               (else
@@ -455,7 +455,7 @@
          (values "A pair."
                  'pair
                  `(car (,(car pair)) ,newline
-                   cdr (,(cdr pair)))))))
+                   cdr (,(cdr pair)) ,newline)))))
 
 (define (inspect-list list)
   (let loop ((fast list) (slow list)
@@ -501,7 +501,7 @@
           `("Length: " (,len) ,newline
             "Contents:" ,newline
               ,@(reverse contents)
-            cdr (,tail))))
+            cdr (,tail) ,newline)))
 
 ;++ I'm not sure that this code is quite correct.
 
@@ -550,17 +550,18 @@
                 (env (closure-env closure)))
             `(,@(template-header template)
               "Template (length " (,(template-length template))
-              "): " (,template)
+              "): " (,template) ,newline
               ,@(template-contents template)
               ,@(if (or (not env) (zero? (vector-length env)))
                     '()
-                    `(,newline ,newline
+                    `(,newline          ; Extra leading newline
                       "Environment:"
                       ,@(inspect-environment
                          env
                          (debug-data-env-shape
                           (template-debug-data template)
-                          #f))))        ; No PC
+                          #f))          ; No PC
+                      ,newline))        ; Extra trailing newline
               ;++ What about components other than the template and the
               ;++ environment?  These can come up with peculiar hacks,
               ;++ and it might be nice to generalize to them.
@@ -575,14 +576,15 @@
              (with-no-names i result))
             (else
              (with-names (+ i 1) (cdr names)
-               (append-reverse `(,newline ,i ,(name-label (car names))
-                                          ,(safe-vector-ref env i))
+               (append-reverse `(,i ,(name-label (car names))
+                                    ,(safe-vector-ref env i)
+                                    ,newline)
                                result)))))
     (define (with-no-names i result)
       (if (= i len)
           (reverse result)
           (with-no-names (+ i 1)
-            (append-reverse `(,newline ,i ,(safe-vector-ref env i))
+            (append-reverse `(,i ,(safe-vector-ref env i) ,newline)
                             result))))
     (if (pair? shape)
         (with-names 0 (car shape) '())
@@ -595,7 +597,7 @@
   (values "A record."
           'record
           (if (zero? (record-length record))
-              (list "(No contents.)")
+              `("(No contents.)" ,newline)
               (with-record-inspection record
                 (lambda ()
                   (inspect-record record))))))
