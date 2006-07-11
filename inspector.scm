@@ -685,6 +685,51 @@
               "Environment maps: " (,env-maps) ,newline
               "Source: " (,source) ,newline))))
 
+(define-method &inspect-object ((port :port))
+  (values "A port."
+          'port
+          (let ((handler (port-handler port))
+                (buffer (port-buffer port))
+                (lock (port-lock port))
+                (status (port-status port))
+                (data (port-data port))
+                (index (port-index port))
+                (limit (port-limit port))
+                (pending-eof? (port-pending-eof? port)))
+            `(,@(inspect-port-status status)
+              ,@(if pending-eof?
+                    `("  (pending end of file)" ,newline)
+                    '())
+              "Buffer: " (,buffer) ,newline
+              "  Index: " (,index) ,newline
+              "  Limit: " (,limit) ,newline
+              "Handler: " (,handler) ,newline
+              "Data: " (,data) ,newline))))
+
+;++ This cruft assumes lots about PORT-STATUS-OPTIONS; it shouldn't.
+
+(define (inspect-port-status status)
+  (let-syntax ((bit (syntax-rules ()
+                      ((BIT enumerand description)
+                       (IF (BIT-SET? (ENUM PORT-STATUS-OPTIONS
+                                           enumerand)
+                                     STATUS)
+                           `("  (" description ")" ,NEWLINE)
+                           '())))))
+    `("Status: " (,status . ,(string-append
+                              "#b"
+                              (string-pad (number->string status 2)
+                                          4
+                                          #\0)))
+      ,newline
+      ,@(bit INPUT "input")
+      ,@(bit OUTPUT "output")
+      ,@(bit OPEN-FOR-INPUT "open for input")
+      ,@(bit OPEN-FOR-OUTPUT "open for output"))))
+
+(define (bit-set? bit integer)
+  (= 1 (bitwise-and (arithmetic-shift 1 bit) integer)))
+
 
 
 ;;; Random utilities

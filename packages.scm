@@ -214,6 +214,9 @@
         record-types
         handle
         tables
+        ports
+        architecture
+        bitwise
         )
   (optimize auto-integrate)
   (files inspector))
