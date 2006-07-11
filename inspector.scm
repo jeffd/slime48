@@ -303,7 +303,7 @@
 (define-method &inspect-object ((vector :vector))
   (values "A vector."
           'vector
-          `("Length: " ,(vector-length vector) ,newline
+          `("Length: " (,(vector-length vector)) ,newline
             "Contents:" ,newline
             ,@(indexed-contents vector 0 (vector-length vector)
                                 safe-vector-ref))))
