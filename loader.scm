@@ -129,9 +129,10 @@
            `(:MESSAGE ,(call-with-string-output-port
                          (lambda (port)
                            (display-condition condition port)))
-             :SHORT-MESSAGE
-               ,@(cond ((condition-short-message condition) => list)
-                       (else '()))
+             ,@(cond ((condition-short-message condition)
+                      => (lambda (short-message)
+                           `(:SHORT-MESSAGE ,short-message)))
+                     (else '()))
              :LOCATION (:ERROR "No source location for condition.")
              :REFERENCES ()))))
     (cond ((error? condition)
