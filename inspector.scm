@@ -228,7 +228,22 @@
 (define-method &inspect-object ((loc :location))
   (values "A location (top-level variable cell)."
           'location
-          `("Contents: " (,(contents loc)) ,newline)))
+          (receive (name package-uid)
+                   (cond ((location-info loc)
+                          => (lambda (info)
+                               (values (car info) (cdr info))))
+                         (else (values #f #f)))
+            `("ID: " (,(location-id loc)) ,newline
+              "Name: " (,name) ,newline
+              "Package: " (,(or (uid->package package-uid)
+                                (table-ref package-name-table
+                                           package-uid)
+                                package-uid))
+              ,newline ,newline
+              ,(cond ((not (location-defined? loc)) "{undefined}")
+                     ((not (location-assigned? loc)) "{unassigned}")
+                     (else `(,(contents loc))))
+              ,newline))))
 
 (define-method &inspect-object ((cell :cell))
   (values "A cell."

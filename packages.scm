@@ -199,6 +199,7 @@
         more-types
         low-level              ; cell-unassigned & vector-unassigned?
         locations
+        (subset packages-internal (package-name-table))
         weak
         cells
         templates
