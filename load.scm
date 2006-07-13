@@ -52,8 +52,8 @@
 (user)
 
 (config '(run (define-structure slime48
-                  (export slime48
-                          make-slime48-world
+                  (export make-slime48-world
+                          spawn-slime48-session
                           spawn-slime48-tcp-server
                           )
                 (open scheme
@@ -90,13 +90,14 @@
                 ;; Not sure whether the =slime48/ is necessary.
                 (files =slime48/top))))
 
-(define (slime48-start exit-on-quit? . port-opt)
-  (in 'slime48
-      `(RUN (BEGIN (DEFINE SLIME48-WORLD)
-                   (DEFINE SLIME48-TCP-SERVER)
-                   (CALL-WITH-VALUES
-                       (LAMBDA ()
-                         (SLIME48 ,exit-on-quit? ,@port-opt))
-                     (LAMBDA (WORLD SERVER)
-                       (SET! SLIME48-WORLD WORLD)
-                       (SET! SLIME48-TCP-SERVER SERVER)))))))
+(define (slime48-start single-session? . port-opt)
+  (call-with-values       ;No RECEIVE in the exec language.
+      (lambda ()
+        (if single-session?
+            (values 'SLIME48-SESSION 'SPAWN-SLIME48-SESSION)
+            (values 'SLIME48-TCP-SERVER 'SPAWN-SLIME48-TCP-SERVER)))
+    (lambda (name spawner)
+      (in 'SLIME48
+          `(RUN (BEGIN (DEFINE SLIME48-WORLD (MAKE-SLIME48-WORLD))
+                       (DEFINE ,name
+                         (,spawner SLIME48-WORLD ,@port-opt))))))))

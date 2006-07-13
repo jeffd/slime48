@@ -6,6 +6,19 @@
 ;;; This code is written by Taylor Campbell and placed in the Public
 ;;; Domain.  All warranties are disclaimed.
 
+(define (make-one-shot-swank-tcp-server world . port-number)
+  (let* ((socket (apply open-socket port-number))
+         (port-number (socket-port-number socket)))
+    (swank-log "(world ~S) Spawning one-shot TCP server on port ~A"
+               (swank-world-id world)
+               (socket-port-number socket))
+    (values port-number
+            (lambda (session-wrapper)
+              (receive (in out) (socket-accept socket)
+                (close-socket socket)
+                (spawn-swank-tcp-session in out world
+                                         session-wrapper))))))
+
 (define-record-type* swank-tcp-server
   (make-swank-tcp-server world socket)
   (thread))

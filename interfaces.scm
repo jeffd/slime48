@@ -68,14 +68,16 @@
           ))
 
 (define-interface swank-tcp-servers-interface
-  (export spawn-swank-tcp-server
-          close-swank-tcp-server
-          swank-tcp-server?
-          swank-tcp-server-world
-          swank-tcp-server-port-number
-          encode-swank-message
-          decode-swank-message
-          ))
+  (export
+    make-one-shot-swank-tcp-server
+    spawn-swank-tcp-server
+    close-swank-tcp-server
+    swank-tcp-server?
+    swank-tcp-server-world
+    swank-tcp-server-port-number
+    encode-swank-message
+    decode-swank-message
+    ))
 
 (define-interface swank-logging-interface
   (export swank-log

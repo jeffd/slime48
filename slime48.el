@@ -15,6 +15,10 @@
 (add-to-list 'slime-lisp-modes 'scheme-mode)
 (add-to-list 'slime-lisp-modes 'scheme48-mode)
 
+(defvar slime48-persistent-server nil
+  "*Nil means SLIME48 should accept only a single session at a time.
+True means starting SLIME48 will start a persistent SLIME48 server.")
+
 (defun slime48-init-command (port-filename coding-system)
   "Return a string to initialize a SLIME48 server."
   (ignore coding-system)
@@ -23,7 +27,9 @@
              `((",set load-noisily on")
                (",translate =slime48/ %S" ,slime48-path)
                (",exec ,load =slime48/load.scm")
-               (",exec (slime48-start #t %S)\n" ,port-filename))
+               (",exec (slime48-start %s %S)\n"
+                ,(if slime48-persistent-server "#f" "#t")
+                ,port-filename))
              "\n"))
 
 ;;; This redefinition is necessary because Scheme doesn't support CL's
@@ -41,7 +47,7 @@
                 "#d"
                 "#10r")
             id)))
-
+
 (defun slime48-enable-presentations ()
   "Enable presentations in the SLIME48 REPL."
   (interactive)

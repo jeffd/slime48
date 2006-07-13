@@ -6,10 +6,22 @@
 ;;; This code is written by Taylor Campbell and placed in the Public
 ;;; Domain.  All warranties are disclaimed.
 
-(define (slime48 exit-on-quit? . port-opt)
-  (let ((world (make-slime48-world)))
-    (values world (apply spawn-slime48-tcp-server
-                         world exit-on-quit? port-opt))))
+(define (spawn-slime48-session world . port)
+  (receive (rest writer) (port-number-option port)
+    (receive (port-number serve)
+             (apply make-one-shot-swank-tcp-server world rest)
+      (writer port-number)
+      (serve slime48-session-wrapper))))
+
+(define (spawn-slime48-tcp-server world . port)
+  (receive (rest writer) (port-number-option port)
+    (let ((server
+           (apply spawn-swank-tcp-server
+                  world
+                  slime48-session-wrapper
+                  rest)))
+      (writer (swank-tcp-server-port-number server))
+      server)))
 
 (define (make-slime48-world)
   (receive (scratch config rpc)
@@ -24,33 +36,34 @@
                       rpc
                       'slime48)))
 
-(define (spawn-slime48-tcp-server world exit-on-quit? . port-opt)
-  (let ((server (apply spawn-swank-tcp-server world
-                       (lambda (session-placeholder body)
-                         (with-sldb-handler #f
-                           (lambda ()
-                             ((lambda (body)        ;++ yucky structure
-                                (if exit-on-quit?
-                                    (with-swank-quitter
-                                        (lambda ()
-                                          (scheme-exit-now 0))
-                                      body)
-                                    (body)))
-                              (lambda ()
-                                (with-slime48-port-redirection
-                                    session-placeholder
-                                  body))))))
-                       (if (and (pair? port-opt)
-                                (number? (car port-opt)))
-                           port-opt
-                           '()))))
-    (if (and (pair? port-opt)
-             (string? (car port-opt)))
-        (call-with-output-file (car port-opt)
-          (lambda (out)
-            (write (swank-tcp-server-port-number server)
-                   out))))
-    server))
+(define slime48-session-wrapper
+  (lambda (session-placeholder body)
+    (with-sldb-handler #f
+      (lambda ()
+        (with-slime48-port-redirection session-placeholder
+          (lambda (init exit)
+            (body init exit)))))))
+
+(define (port-number-option option)
+  (cond ((null? option)
+         (values '()
+                 (lambda (port-number)
+                   port-number
+                   (values))))
+        ((string? (car option))
+         (values '()
+                 (let ((filename (car option)))
+                   (lambda (port-number)
+                     (call-with-output-file filename
+                       (lambda (output-port)
+                         (write port-number output-port)))))))
+        ((integer? (car option))
+         (values (list (car option))
+                 (lambda (port-number)
+                   port-number
+                   (values))))
+        (else
+         (error "invalid port option" option))))
 
 (define (with-slime48-port-redirection session-placeholder body)
   ;++ What about the noise and error output ports?
