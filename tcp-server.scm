@@ -39,19 +39,19 @@
 (define (run-swank-tcp-server server session-wrapper)
   (let ((socket (swank-tcp-server-socket server))
         (world (swank-tcp-server-world server)))
-    (let loop ((id 0))
+    (let loop ()
       (receive (in out) (socket-accept socket)
-        (spawn-swank-tcp-session in out world id session-wrapper))
-      (loop (+ id 1)))))
+        (spawn-swank-tcp-session in out world session-wrapper))
+      (loop))))
 
-(define (spawn-swank-tcp-session in out world id session-wrapper)
+(define (spawn-swank-tcp-session in out world session-wrapper)
   (let ((session-placeholder (make-placeholder))
         (reader-placeholder (make-placeholder))
         (writer-placeholder (make-placeholder)))
     (let ((session
            (session-wrapper session-placeholder
              (lambda (init exit)
-               (spawn-swank-session id world
+               (spawn-swank-session world
                  ;; These next two procedures will be called in other
                  ;; threads, so we must be careful about synchronizing
                  ;; access to the session descriptor and the two I/O

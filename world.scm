@@ -13,11 +13,20 @@
                     config-env          ; module language environment
                     rpc-env             ; Swank RPC binding environment
                     id)
-  ((sessions (make-weak-set))))
+  ((sessions (make-weak-table))
+   (session-id (make-cell 0))))
 
 (define-record-discloser :swank-world
   (lambda (world)
     (list 'swank-world (swank-world-id world))))
+
+(define (next-swank-session-id world)
+  (let ((cell (swank-world-session-id world)))
+    (call-ensuring-atomicity
+      (lambda ()
+        (let ((id (provisional-cell-ref cell)))
+          (provisional-cell-set! cell (+ id 1))
+          id)))))
 
 (define (swank-world-structure-names world)
   (config-structure-names (swank-world-config-env world)))

@@ -29,14 +29,16 @@
   (lambda (session)
     (list 'swank-session (swank-session-id session))))
 
-(define (spawn-swank-session id world top-winder top-unwinder)
-  (swank-log "(world ~S) Spawning session ~S"
-             (swank-world-id world) id)
-  (let ((session (make-swank-session world id)))
-    (spawn-swank-session-controller session)
-    (spawn-swank-session-levels session top-winder top-unwinder)
-    (weak-set-add! (swank-world-sessions world) session)
-    session))
+(define (spawn-swank-session world top-winder top-unwinder)
+  (let ((id (next-swank-session-id world)))
+    (swank-log "(world ~S) Spawning session ~S"
+               (swank-world-id world)
+               id)
+    (let ((session (make-swank-session world id)))
+      (spawn-swank-session-controller session)
+      (spawn-swank-session-levels session top-winder top-unwinder)
+      (weak-table-set! (swank-world-sessions world) id session)
+      session)))
 
 ; (put 'spawn-swank-session 'scheme-indent-function 2)
 

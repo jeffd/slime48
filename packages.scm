@@ -18,6 +18,8 @@
                               set-reflective-tower-maker!
                               environment-define!))
         weak-utilities
+        cells
+        proposals
         )
   (optimize auto-integrate)
   (files world))

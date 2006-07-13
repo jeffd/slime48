@@ -11,6 +11,7 @@
           swank-world?
           swank-world-id
           swank-world-sessions
+          next-swank-session-id
           swank-world-scratch-env
           swank-world-config-env
           swank-world-rpc-env
