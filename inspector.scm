@@ -571,6 +571,7 @@
                     '()
                     `(,newline          ; Extra leading newline
                       "Environment:"
+                      ,newline
                       ,@(inspect-environment
                          env
                          (debug-data-env-shape
