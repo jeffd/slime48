@@ -15,18 +15,21 @@
                              ".scm"))))
        (string-append filename ".scm")
        filename)
-   (interaction-environment))
+   (semi-loaded-interaction-environment))
   'nil)
 
 (define (swank:load-file-set-package filename package-string)
-  (load filename (interaction-environment))
+  ;++ This seems wrong.  This should probably load the file into the
+  ;++ listed package, since Scheme48 has no equivalent of IN-PACKAGE.
+  ;++ I think it would be best to transpose the next two expressions.
+  (load filename (semi-loaded-interaction-environment))
   (swank:set-package package-string))
 
 (define (swank:compile-file-for-emacs filename load? . encoding)
   ;++ respect encoding
   (with-swank-compiler
     (lambda ()
-      (let* ((package (interaction-environment))
+      (let* ((package (semi-loaded-interaction-environment))
              (template (swank-compile-file filename package)))
         (if load?
             (swank-run-template template (package-uid package))))
@@ -41,7 +44,7 @@
 (define (swank:compile-string-for-emacs string buffer pos dir)
   (with-swank-compiler
     (lambda ()
-      (let* ((package (interaction-environment))
+      (let* ((package (semi-loaded-interaction-environment))
              (cenv (let ((cenv (package->environment package)))
                      (if dir
                          (bind-source-file-name dir cenv)

@@ -138,7 +138,7 @@
         packages
         (subset packages-internal (package-name))
         (subset environments (set-interaction-environment!))
-        (subset module-control (package-open! package-undefine!))
+        module-control
         swank-sessions
         swank-worlds
         )
@@ -331,6 +331,7 @@
         receiving
         string-i/o
         filenames
+        module-control
         package-loader
         (subset packages (package->environment
                           structure-package
@@ -399,6 +400,7 @@
         (subset names (name?))
         package-mutation
         package-loader
+        ensures-loaded                  ;++ flush
         )
   (optimize auto-integrate)
   (files module))

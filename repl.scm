@@ -10,7 +10,8 @@
   (let ((exp (read-from-string string)))
     (if (eof-object? exp)
         #f
-        (receive results (eval exp (interaction-environment))
+        (receive results
+                 (eval exp (semi-loaded-interaction-environment))
           results))))
 
 (define (swank:interactive-eval string)
@@ -40,7 +41,8 @@
         (if (eof-object? exp)
             (cond (results => interactive-eval-results)
                   (else "; Nothing to evaluate"))
-            (receive results (eval exp (interaction-environment))
+            (receive results
+                     (eval exp (semi-loaded-interaction-environment))
               (loop results)))))))
 
 (define (swank:eval-and-grab-output string)

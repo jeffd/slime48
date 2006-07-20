@@ -203,7 +203,7 @@
               exp)
           (or (uid->package (template-package-id
                              (continuation-template frame)))
-              (interaction-environment)))))
+              (semi-loaded-interaction-environment)))))
 
 (define (make-local-binding name value)
   (cons name `(,operator/code-quote ,value)))

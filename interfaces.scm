@@ -286,6 +286,8 @@
           uid->package
           package-open!
           package-undefine!
+          loaded-interaction-environment
+          semi-loaded-interaction-environment
           ))
 
 (define-interface package-loader-interface

@@ -124,3 +124,13 @@
             (if (= (package-uid package) uid)
                 package
                 (loop (+ i 1))))))))
+
+(define (loaded-interaction-environment)
+  (let ((env (interaction-environment)))
+    (load-package env)
+    env))
+
+(define (semi-loaded-interaction-environment)
+  (let ((env (interaction-environment)))
+    (apply ensure-loaded (package-opens env))
+    env))
