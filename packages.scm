@@ -247,6 +247,7 @@
 (define-structure swank-completion-rpc swank-completion-rpc-interface
   (open scheme
         receiving
+        handle
         (subset util (fold))
         (subset string-i/o (write-to-string read-from-string))
         (subset packages-internal (for-each-definition

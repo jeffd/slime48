@@ -50,13 +50,12 @@
 
 (define (compute-completions prefix-string package completion?)
   (let ((completions '())
-        (prefix-string
-         ;++ hack
-         (symbol->string (read-from-string prefix-string))))
+        (completion? (make-completion-predicate prefix-string
+                                                completion?)))
     (define (test symbol)
       (if (symbol? symbol)     ; protect against generated names
           (let ((string (symbol->string symbol)))
-            (if (completion? prefix-string string)
+            (if (completion? string)
                 (set! completions (cons string completions))))))
     (for-each-definition (lambda (symbol binding)
                            (test symbol))
@@ -67,6 +66,27 @@
                                  open))
               (package-opens package))
     completions))
+
+(define (make-completion-predicate prefix-string completion?)
+  ;++ This is a kind of cheesy hack.  What we really want is for the
+  ;++ reader to expose its symbol recognizer.  Fortunately, symbols are
+  ;++ GC'd, so this is OK for now.
+  (let ((prefix-symbol
+         (ignore-errors (lambda ()
+                          (read-from-string prefix-string)))))
+    (cond ((symbol? prefix-symbol)
+           (let ((prefix-string (symbol->string prefix-symbol)))
+             (lambda (string)
+               (completion? prefix-string string))))
+          ((eof-object? prefix-symbol)
+           (lambda (string)
+             string                     ;ignore
+             #t))
+          (else
+           (abort-swank-rpc
+            "(session ~S, COMPLETION) Invalid prefix string: ~S"
+            (swank-session-id (current-swank-session))
+            prefix-string)))))
 
 (define (string-prefix? prefix string)
   (let ((prefix-len (string-length prefix)))
