@@ -22,7 +22,7 @@
         ((null? results) "; No value")
         ((null? (cdr results))
          (let ((v (car results)))
-           (if (integer? v)
+           (if (and (integer? v) (exact? v))
                (string-append (number->string v 10)
                               " (#x" (number->string v 16)
                               ", #o" (number->string v 8)
