@@ -13,7 +13,7 @@
 
 (define-record-type* inspector
   (make-inspector (object))
-  (parts         ; initialized by SWANK:INSPECTOR-REINSPECT
+  ((parts (make-xvector))
    (stack '())
    (history (let ((history (make-xvector)))
               (xvector-push! history object)
@@ -57,9 +57,12 @@
   (multiple-values list)
   ())
 
-(define (swank:init-inspector exp-string)
+(define (swank:init-inspector exp-string . reset?-option)
   (cond ((repl-eval-string exp-string)
-         => inspect-results)
+         => (lambda (results)
+              (inspect-results results
+                               (and (pair? reset?-option)
+                                    (car reset?-option)))))
         (else
          (abort-swank-rpc
           "(session ~S, INSPECT) No expression in string: ~S"
@@ -102,13 +105,16 @@
   (set-current-inspector! (make-inspector obj))
   (swank:inspector-reinspect))
 
-(define (inspect-results results)
-  (inspect-object (cond ((null? results)
-                         (zero-values))
-                        ((null? (cdr results))
-                         (one-value (car results)))
-                        (else
-                         (multiple-values results)))))
+(define (inspect-results results reset?)
+  ((if (or reset? (not (current-inspector)))
+       inspect-object
+       inspect-subobject)
+   (cond ((null? results)
+          (zero-values))
+         ((null? (cdr results))
+          (one-value (car results)))
+         (else
+          (multiple-values results)))))
 
 (define (inspect-subobject obj)
   (modify-current-inspector-stack!
@@ -122,9 +128,7 @@
 (define (swank:inspector-reinspect)
   (receive (title type listing)
            (really-inspect-object (current-inspector-object))
-    (receive (contents parts)
-             (process-inspector-listing listing)
-      (set-current-inspector-parts! parts)
+    (let ((contents (process-inspector-listing listing)))
       `(:TITLE   ,(call-with-string-output-port
                     (lambda (output-port)
                       (write-string title output-port)
@@ -133,10 +137,12 @@
                       (hybrid-write (current-inspector-object)
                                     output-port)))
         :TYPE    ,(string-upcase (symbol->string type))
-        :CONTENT ,contents))))
+        :CONTENT ,contents
+        :ID      ,(xvector-push! (inspector-parts (current-inspector))
+                                 (current-inspector-object))))))
 
 (define (process-inspector-listing listing)
-  (let ((parts (make-xvector)))
+  (let ((parts (current-inspector-parts)))
     (reduce ((list* item listing))
         ((contents '()))
       ((lambda (content)
@@ -156,7 +162,7 @@
               (error "invalid inspection listing item"
                      item))))
 
-      (values (reverse contents) parts))))
+      (reverse contents))))
 
 (define (symbol-label symbol)
   (string-append (string-upcase (symbol->string symbol))
