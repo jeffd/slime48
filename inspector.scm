@@ -105,8 +105,10 @@
   (set-current-inspector! (make-inspector obj))
   (swank:inspector-reinspect))
 
-(define (inspect-results results reset?)
-  ((if (or reset? (not (current-inspector)))
+(define (inspect-results results . reset?-option)
+  ((if (or (and (pair? reset?-option)
+                (car reset?-option))
+           (not (current-inspector)))
        inspect-object
        inspect-subobject)
    (cond ((null? results)
