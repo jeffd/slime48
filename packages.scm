@@ -253,8 +253,7 @@
         (subset packages-internal (for-each-definition
                                    for-each-export
                                    package-opens))
-        (subset swank-sessions (current-swank-world
-                                abort-swank-rpc))
+        swank-sessions
         swank-worlds
         )
   (optimize auto-integrate)
