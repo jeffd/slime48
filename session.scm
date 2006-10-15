@@ -23,6 +23,7 @@
    level                                ; current interaction level
    (data (make-integer-table))          ; table of arbitrary data
    top-dynamic-env                      ; for resetting the top level
+   (disconnector #f)
    ))
 
 (define-record-discloser :swank-session
@@ -60,6 +61,20 @@
 
 (define (receive-outgoing-swank-message session)
   (pipe-read! (swank-session-out-pipe session)))
+
+(define (disconnect-swank-session session)
+  (cond ((swank-session-disconnector session)
+         => (lambda (disconnector)
+              (disconnector session)
+              (set-swank-session-disconnector! session #f)))))
+
+(define (connect-swank-session session connector)
+  (disconnect-swank-session session)
+  (set-swank-session-disconnector! session (connector session)))
+
+(define (swank-session-connected? session)
+  (and (swank-session-disconnector session)
+       #t))
 
 
 
@@ -477,8 +492,11 @@
   (let* ((session (level-session level))
          (pipe (swank-session-repl-pipe session)))
     (let loop ()
-      (destructure (((form package-id return-tag) (pipe-read! pipe)))
-        (swank-eval form package-id return-tag session))
+      (let ((message (pipe-read! pipe)))
+        (if (procedure? message)
+            (message)
+            (destructure (((form package-id return-tag) message))
+              (swank-eval form package-id return-tag session))))
       (loop))))
 
 ;;; Exported operations
@@ -524,6 +542,13 @@
                session
                number))))
 
+(define (call-in-swank-session-repl session thunk)
+  (if (procedure? thunk)       ;Protect against silly {ab,l}users.
+      (pipe-write! (swank-session-repl-pipe session)
+                   thunk)
+      (call-error "invalid procedure"
+                  call-in-swank-session-repl session thunk)))
+
 
 
 ;;; ----------------
@@ -534,7 +559,7 @@
           (with-restarter-invoker-hook swank-restarter-invoker-hook
             (lambda ()
               (with-interaction-environment
-                  (swank-world-user-env
+                  (swank-world-scratch-env
                    (swank-session-world session))
                 get-dynamic-env))))
          (thread
@@ -700,6 +725,7 @@
            (let ((session (level-session level)))
              (swank-log "(session ~S) Terminating"
                         (swank-session-id session))
+             (disconnect-swank-session session)
              ;; The controller does not run under the Swank scheduler,
              ;; so we manually terminate it here.
              (terminate-thread!
@@ -717,9 +743,10 @@
 
 (define (swank-upcall-handler level)
   (lambda (origin-thread token args)
-    (if (swank-upcall? token)
+    (if (and (swank-upcall? token)
+             (eq? (car args) (level-session level)))
         (apply (swank-upcall-procedure token)
-               origin-thread level args)
+               origin-thread level (cdr args))
         ;; Bloody spelling errors set in stone.
         (propogate-upcall origin-thread token args))))
 
@@ -745,8 +772,12 @@
                              (PROC (CURRENT-THREAD)
                                    LEVEL
                                    arg ...)))
+                       ((CURRENT-SWANK-SESSION)
+                        => (LAMBDA (SESSION)
+                             (UPCALL TOKEN SESSION arg ...)))
                        (ELSE
-                        (UPCALL TOKEN arg ...)))))))))
+                        (ERROR "not in Swank"
+                               `(,id ,arg ...))))))))))
 
 ; (put 'define-swank-upcall 'scheme-indent-function 3)
 
@@ -757,12 +788,6 @@
   (let loop ((level (current-level)))
     (cond ((level-parent level) => loop)
           (else level))))
-
-(define-swank-upcall (current-swank-session) thread level
-  (level-session level))
-
-(define (current-swank-world)
-  (swank-session-world (current-swank-session)))
 
 (define (push-swank-level condition winder unwinder)
   (let ((thunk
@@ -858,15 +883,15 @@
                      " top level")
                  "."))
 
-(define swank-restarter-invoker-hook
-        (lambda (invoker)
-          (let ((level (current-level)))
-            (lambda args
-              (if (eq? level (current-level))
-                  (apply invoker args)
-                  (throw-to-level-pusher (level-child level)
-                                         (lambda ()
-                                           (apply invoker args))))))))
+(define (make-swank-restarter-invoker-hook session)
+  (lambda (invoker)
+    (let ((level (swank-session-level session)))
+      (lambda args
+        (if (eq? level (swank-session-level session))
+            (apply invoker args)
+            (throw-to-level-pusher (level-child level)
+                                   (lambda ()
+                                     (apply invoker args))))))))
 
 ;;; We need a separate upcall for this, because the restarter won't be
 ;;; invoked on the level scheduler thread, usually.

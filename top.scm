@@ -6,25 +6,68 @@
 ;;; This code is written by Taylor Campbell and placed in the Public
 ;;; Domain.  All warranties are disclaimed.
 
-(define (spawn-slime48-session world . port)
-  (receive (rest writer) (port-number-option port)
-    (receive (port-number serve)
-             (apply make-one-shot-swank-tcp-server world rest)
-      (writer port-number)
-      (serve slime48-session-wrapper))))
+(define (serve-one-slime48-session session . port)
+  (receive (port-number server closer) (make-slime48-tcp-server port)
+    (swank-log "(session ~S) Serving one remote session on port ~S"
+               (swank-session-id session)
+               port-number)
+    (server slime48-authenticator
+            (lambda (connector)
+              (connect-swank-session session connector)
+              (closer))
+            (lambda ()
+              (swank-log "(session ~S) Client failed authentication"
+                         (swank-session-id session))))))
 
 (define (spawn-slime48-tcp-server world . port)
-  (receive (rest writer) (port-number-option port)
-    (let ((server
-           (apply spawn-swank-tcp-server
-                  world
-                  slime48-session-wrapper
-                  rest)))
-      (writer (swank-tcp-server-port-number server))
-      server)))
+  (receive (port-number server closer) (make-slime48-tcp-server port)
+    (let ((server-thread
+           (spawn (lambda ()
+                    (swank-log "(world ~S) Serving on port ~S"
+                               (swank-world-id world)
+                               port-number)
+                    (serve-slime48-sessions server world))
+                  `(slime48-server ,(swank-world-id world)))))
+      (lambda ()
+        (terminate-thread! server-thread)
+        (closer)))))
 
-(define (make-slime48-world user-environment)
-  (make-swank-world user-environment
+(define (serve-slime48-sessions server world)
+  (server slime48-authenticator
+          (lambda (connector)
+            (connect-swank-session (spawn-slime48-session world)
+                                   connector))
+          values)
+  (serve-slime48-sessions server world))
+
+(define (make-slime48-tcp-server port-opt)
+  (cond ((null? port-opt) (make-swank-tcp-server))
+        ((or (and (string? (car port-opt))   ;name of file to write
+                  (lambda (port-number)
+                    (call-with-output-file (car port-opt)
+                      (lambda (output-port)
+                        (write port-number output-port)))))
+             (and (procedure? (car port-opt))
+                  (car port-opt)))
+         => (lambda (announcer)
+              (receive (port-number server closer)
+                       (make-swank-tcp-server)
+                (announcer port-number)
+                (values port-number server closer))))
+        ((integer? (car port-opt))      ;port number
+         (make-swank-tcp-server (car port-opt)))
+        (else
+         (error "invalid port number option" port-opt))))
+
+(define slime48-authenticator
+  (lambda (in out)
+    (let ((secret-key (slime48-secret-key)))
+      (or (not secret-key)
+          (equal? secret-key (decode-swank-message in))))))
+
+(define (make-slime48-world)
+  (make-swank-world (make-swank-scratch-package (list scheme)
+                                                (list scheme))
                     ;; Use the existing config package, which has all
                     ;; structures in Scheme48's image, not just the
                     ;; statically linked ones plus the Swank ones.
@@ -32,34 +75,28 @@
                     (make-swank-rpc-package scheme swank-rpc)
                     'SLIME48))
 
-(define slime48-session-wrapper
-  (lambda (session-placeholder body)
-    (with-sldb-handler #f
-      (lambda ()
-        (with-slime48-port-redirection session-placeholder
-          (lambda (init exit)
-            (body init exit)))))))
+(define (spawn-slime48-session world . debugger-attacher)
+  (call-with-result-placeholder
+    (lambda (session-placeholder)
+      (with-sldb-handler #f
+          (lambda ()
+            (placeholder-value session-placeholder))
+          (and (pair? debugger-attacher)
+               (wrap-debugger-attacher (car debugger-attacher)))
+        (lambda ()
+          (with-slime48-port-redirection session-placeholder
+            (lambda ()
+              (spawn-swank-session world values values))))))))
 
-(define (port-number-option option)
-  (cond ((null? option)
-         (values '()
-                 (lambda (port-number)
-                   port-number
-                   (values))))
-        ((string? (car option))
-         (values '()
-                 (let ((filename (car option)))
-                   (lambda (port-number)
-                     (call-with-output-file filename
-                       (lambda (output-port)
-                         (write port-number output-port)))))))
-        ((integer? (car option))
-         (values (list (car option))
-                 (lambda (port-number)
-                   port-number
-                   (values))))
-        (else
-         (error "invalid port option" option))))
+(define (wrap-debugger-attacher procedure)
+  (let ((spawn (spawner-on-current-scheduler)))
+    (lambda (condition session)
+      (let ((placeholder (make-placeholder)))
+        (spawn (lambda ()
+                 (placeholder-set! placeholder
+                                   (procedure condition session)))
+               `(swank-teledebugger ,(swank-session-id session)))
+        (placeholder-value placeholder)))))
 
 (define (with-slime48-port-redirection session-placeholder body)
   ;++ What about the noise and error output ports?
@@ -70,9 +107,36 @@
     (lambda ()
       (call-with-current-input-port
           (make-swank-input-port session-placeholder)
-        (lambda ()
-          ;; No init or exit thunks.  (Hook for separate TCP stream.)
-          (body values values))))))
+        body))))
+
+
+
+;++ Is the placeholder the right abstraction here?  What about promises
+;++ or thunks built on top of placeholders?
+
+(define (call-with-result-placeholder procedure)
+  (let* ((placeholder (make-placeholder))
+         (value (procedure placeholder)))
+    (placeholder-set! placeholder value)
+    value))
+
+(define (spawner-on-current-scheduler)
+  (let ((scheduler (thread-scheduler (current-thread))))
+    (lambda (thunk . name)
+      (apply spawn-on-scheduler scheduler thunk name))))
+
+(define (read-line input-port)
+  (let loop ((chars '())
+             (count 0))
+    (let ((char (read-char input-port)))
+      (cond ((eof-object? char)
+             (if (zero? count)
+                 char
+                 (reverse-list->string chars count)))
+            ((char=? char #\newline)
+             (reverse-list->string chars count))
+            (else
+             (loop (cons char chars) (+ count 1)))))))
 
 
 
@@ -170,6 +234,7 @@
           (let ((package (structure-package
                           (prompt-for-evaluated-expression
                            "Package of structure"
+                           ;++ This is wrong!
                            (config-package)))))
             (values (prompt-for-name "Name of variable")
                     package)))

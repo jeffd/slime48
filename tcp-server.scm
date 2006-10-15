@@ -6,127 +6,85 @@
 ;;; This code is written by Taylor Campbell and placed in the Public
 ;;; Domain.  All warranties are disclaimed.
 
-(define (make-one-shot-swank-tcp-server world . port-number)
-  (let* ((socket (apply open-socket port-number))
-         (port-number (socket-port-number socket)))
-    (swank-log "(world ~S) Spawning one-shot TCP server on port ~A"
-               (swank-world-id world)
-               (socket-port-number socket))
-    (values port-number
-            (lambda (session-wrapper)
-              (receive (in out) (socket-accept socket)
-                (close-socket socket)
-                (spawn-swank-tcp-session in out world
-                                         session-wrapper))))))
-
-(define-record-type* swank-tcp-server
-  (make-swank-tcp-server world socket)
-  (thread))
-
-(define (spawn-swank-tcp-server world session-wrapper . port-number)
+(define (make-swank-tcp-server . port-number)
   (let ((socket (apply open-socket port-number)))
-    (swank-log "(world ~S) Spawning TCP server on port ~A"
-               (swank-world-id world)
-               (socket-port-number socket))
-    (let* ((server (make-swank-tcp-server world socket))
-           (thread (spawn (lambda ()
-                            (run-swank-tcp-server server
-                                                  session-wrapper))
-                          `(swank-tcp-server
-                            ,(swank-world-id world)
-                            ,(socket-port-number socket)))))
-      (set-swank-tcp-server-thread! server thread)
-      server)))
+    (values (socket-port-number socket)
+            (make-swank-tcp-server-procedure socket)
+            (lambda ()
+              (swank-log "Closing server socket on port ~S"
+                         (socket-port-number socket))
+              (close-socket socket)))))
 
-(define (close-swank-tcp-server server)
-  (let ((socket (swank-tcp-server-socket server)))
-    (swank-log "(world ~S) Closing TCP server on port ~A"
-               (swank-world-id (swank-tcp-server-world server))
-               (socket-port-number socket))
-    (terminate-thread! (swank-tcp-server-thread server))
-    (close-socket socket)))
+(define (make-swank-tcp-server-procedure socket)
+  (lambda (authenticator winner loser)
+    (receive (in out) (socket-accept socket)
+      (if (and authenticator
+               (not (authenticator in out)))
+          (loser)
+          (winner
+           (lambda (session)
+             (let ((reader (spawn-swank-tcp-reader in session))
+                   (writer (spawn-swank-tcp-writer out session)))
+               (lambda (session)
+                 session
+                 (terminate-thread! reader)
+                 (terminate-thread! writer)
+                 (close-input-port in)
+                 (close-output-port out)))))))))
 
-(define (swank-tcp-server-port-number server)
-  (socket-port-number (swank-tcp-server-socket server)))
+(define (spawn-swank-tcp-reader in session)
+  (spawn (lambda ()
+           (run-swank-tcp-reader in session))
+         `(swank-tcp-reader ,(swank-session-id session))))
 
-(define (run-swank-tcp-server server session-wrapper)
-  (let ((socket (swank-tcp-server-socket server))
-        (world (swank-tcp-server-world server)))
-    (let loop ()
-      (receive (in out) (socket-accept socket)
-        (spawn-swank-tcp-session in out world session-wrapper))
-      (loop))))
+(define (run-swank-tcp-reader in session)
+  (let ((message (decode-swank-message in)))
+    ;++ This is a hack.  We can't disconnect in this thread, because
+    ;++ disconnecting involves terminating this thread and doing other
+    ;++ important things afterward.  So we send a message to the
+    ;++ session that we happen to know will cause it to disconnect.
+    ;++ This message has null package id, thread id, and return tag.
+    (if (eof-object? message)
+        (send-incoming-swank-message session
+          '(:EMACS-REX (SWANK:QUIT-LISP) NIL NIL NIL))
+        (begin (send-incoming-swank-message session message)
+               (run-swank-tcp-reader in session)))))
 
-(define (spawn-swank-tcp-session in out world session-wrapper)
-  (let ((session-placeholder (make-placeholder))
-        (reader-placeholder (make-placeholder))
-        (writer-placeholder (make-placeholder)))
-    (let ((session
-           (session-wrapper session-placeholder
-             (lambda (init exit)
-               (spawn-swank-session world
-                 ;; These next two procedures will be called in other
-                 ;; threads, so we must be careful about synchronizing
-                 ;; access to the session descriptor and the two I/O
-                 ;; thread descriptors.
-                 (lambda ()             ; session winder
-                   (spawn-swank-tcp-i/o
-                    in out
-                    (placeholder-value session-placeholder)
-                    reader-placeholder
-                    writer-placeholder)
-                   (init))
-                 (lambda ()             ; session unwinder
-                   (exit)
-                   (terminate-thread!
-                    (placeholder-value reader-placeholder))
-                   (terminate-thread!
-                    (placeholder-value writer-placeholder))
-                   (close-input-port in)
-                   (close-output-port out)))))))
-      (placeholder-set! session-placeholder session))))
+(define (spawn-swank-tcp-writer out session)
+  (spawn (lambda ()
+           (run-swank-tcp-writer out session))
+         `(swank-tcp-writer ,(swank-session-id session))))
 
-(define (spawn-swank-tcp-i/o in out session
-                             reader-placeholder
-                             writer-placeholder)
-  (let ((reader (spawn (lambda ()
-                         (run-swank-tcp-reader session in))
-                       `(swank-tcp-reader ,session)))
-        (writer (spawn (lambda ()
-                         (run-swank-tcp-writer session out))
-                       `(swank-tcp-writer ,session))))
-    (placeholder-set! reader-placeholder reader)
-    (placeholder-set! writer-placeholder writer)))
-
-(define (run-swank-tcp-reader session in)
-  (let loop ()
-    (send-incoming-swank-message session (decode-swank-message in))
-    (loop)))
-
+(define (run-swank-tcp-writer out session)
+  (encode-swank-message (receive-outgoing-swank-message session)
+                        out)
+  (run-swank-tcp-writer out session))
+
 (define-condition-type 'swank-protocol-error '(error))
 (define swank-protocol-error?
         (condition-predicate 'swank-protocol-error))
 (define (swank-protocol-error-port error) (caddr error))
 
 (define (decode-swank-message in)
-  (let* ((length (decode-swank-message-length in))
-         (string (make-string length))
-         (count-read (read-block string 0 length in)))
-    (if (not (= count-read length))
-        (signal 'swank-protocol-error
-                "number of bytes read does not match expected length"
-                in
-                `(expected ,length)
-                `(read ,count-read)))
-    (with-handler (lambda (condition punt)
-                    (if (read-error? condition)
-                        (signal 'swank-protocol-error
-                                "malformed input expression"
-                                in
-                                condition)
-                        (punt)))
-      (lambda ()
-        (read-from-string string)))))
+  (if (eof-object? (peek-char in))
+      (peek-char in)
+      (with-handler (lambda (condition punt)
+                      (if (read-error? condition)
+                          (signal 'swank-protocol-error
+                                  "malformed input expression"
+                                  in
+                                  condition)
+                          (punt)))
+        (lambda ()
+          (let* ((length (decode-swank-message-length in))
+                 (string (make-string length))
+                 (count-read (read-block string 0 length in)))
+            (if (or (eof-object? count-read)
+                    (< count-read length))
+                (signal 'swank-protocol-error
+                        "premature end of file"
+                        in)
+                (read-from-string string)))))))
 
 (define (decode-swank-message-length port)
   (do ((c 0 (+ c 1))
@@ -134,10 +92,33 @@
                          (read-hex-digit port))))
       ((= c 6) i)))
 
+(define (encode-swank-message message out)
+  (let* ((string (write-to-string message)))
+    (encode-swank-message-length string out)
+    (write-string string out)
+    (force-output out)))
+
+(define (encode-swank-message-length string out)
+  (let ((length (string-length string)))
+    (if (>= length (arithmetic-shift 2 24))
+        (error "message too long to be encoded in Swank" string)
+        (let ()
+          (define (extract-digit n)
+            (bitwise-and (arithmetic-shift length (* -4 n))
+                         #xF))
+          (define (write-digit n)
+            (write-hex-digit (extract-digit n) out))
+          (write-digit 5)
+          (write-digit 4)
+          (write-digit 3)
+          (write-digit 2)
+          (write-digit 1)
+          (write-digit 0)))))
+
 (define (read-hex-digit port)
   (let ((char (read-char port)))
     (if (eof-object? char)
-        (signal 'swank-protocol-error
+        (signal 'read-error
                 "premature end of file"
                 port)
         (let ((ascii (char->ascii char)))
@@ -148,33 +129,23 @@
                 ((char-between? #\A char #\F)
                  (+ 10 (- ascii (char->ascii #\A))))
                 (else
-                 (signal 'swank-protocol-error
-                         "invalid hex digit for message length read"
-                         port
-                         char)))))))
+                 (signal 'read-error
+                         "invalid hex digit"
+                         char
+                         port)))))))
 
 (define (char-between? lower char upper)
   ;; Why isn't CHAR<=? n-ary?
   (and (char<=? lower char)
        (char<=? char upper)))
 
-(define (run-swank-tcp-writer session out)
-  (let loop ()
-    (encode-swank-message (receive-outgoing-swank-message session)
-                          out)
-    (loop)))
-
-(define (encode-swank-message message out)
-  (let* ((string (write-to-string message)))
-    (write-string (encode-swank-message-length string) out)
-    (write-string string out)
-    (write-char #\newline out)          ; Careful not to call NEWLINE!
-    (force-output out)))
-
-(define (encode-swank-message-length string)
-  (let ((length (+ (string-length string) 1)))
-    (if (>= length (arithmetic-shift 2 24))
-        (error "message too long to be encoded in Swank" string)
-        (let ((hex (number->string length 16)))
-          (string-append (make-string (- 6 (string-length hex)) #\0)
-                         hex)))))
+(define (write-hex-digit digit port)
+  (cond ((<= 0 digit 9)
+         (write-char (ascii->char (+ digit (char->ascii #\0)))
+                     port))
+        ((<= 10 digit 16)
+         (write-char (ascii->char (+ (- digit 10) (char->ascii #\A)))
+                     port))
+        (else
+         (call-error "invalid hex digit"
+                     write-hex-digit digit port))))

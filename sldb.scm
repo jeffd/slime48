@@ -9,38 +9,64 @@
 ;++ There is considerable potential for better abstraction of much of
 ;++ this file.
 
-(define (with-sldb-handler filter thunk)
-  (with-handler (let ((filter (or filter error?)))
-                  (lambda (condition punt)
-                    (if (or (filter condition)
-                            (breakpoint? condition))
-                        (sldb-condition-handler condition punt)
-                        (punt))))
-    thunk))
-
 (define-condition-type 'BREAKPOINT '())
 (define breakpoint? (condition-predicate 'BREAKPOINT))
-
-; (put 'with-sldb-handler 'scheme-indent-function 1)
 
 (define (swank:simple-break)
   (with-exiting-restarter 'continue "Continue from break."
     (lambda ()
-      (sldb-condition-handler '(BREAKPOINT)
-                              ;; Nothing to punt.
-                              values)))
+      (invoke-sldb '(BREAKPOINT)
+                   ;; Nothing to punt.
+                   values)))
   'nil)
 
-(define sldb-condition-handler
-        (lambda (condition punt)
-          ((call-with-current-continuation
-            (lambda (k)
-              (lambda ()
-                (let-fluid $sldb-condition-punter (lambda () (k punt))
-                  (lambda ()
-                    (push-swank-level condition
-                      send-sldb-activation
-                      send-sldb-return)))))))))
+;++ Optional arguments?  What're those?...
+
+(define (make-sldb-invoker session-getter . attacher)
+  (let ((attacher (or (and (pair? attacher)
+                           (car attacher))
+                      (lambda (condition session)
+                        condition session
+                        #t))))
+    (lambda (condition punt)
+      (cond ((session-getter)
+             => (lambda (session)
+                  (if (or (swank-session-connected? session)
+                          (attacher condition session))
+                      (with-sldb-condition-punter punt
+                        (lambda ()
+                          (with-swank-session session
+                            (lambda ()
+                              (push-swank-level condition
+                                send-sldb-activation
+                                send-sldb-return)))))
+                      (punt))))
+            (else (punt))))))
+
+(define (make-sldb-condition-handler filter session-getter . attacher)
+  (let ((filter (or filter error?))
+        (sldb-invoker
+         (apply make-sldb-invoker session-getter attacher)))
+    (lambda (condition punt)
+      (if (or (filter condition)
+              (breakpoint? condition))
+          (sldb-invoker condition punt)
+          (punt)))))
+
+(define (with-sldb-handler filter session-getter attacher
+          thunk)
+  (with-handler
+      (make-sldb-condition-handler filter session-getter attacher)
+    thunk))
+
+;** This is safe to call *only* from the session which it is meant to
+;** debug.  That is, it's useful pretty much only inside RPCs.  Use
+;** carefully.
+
+(define invoke-sldb
+  (make-sldb-invoker current-swank-session))
+
+(define sldb-condition-handler invoke-sldb)    ;++ deprecated
 
 (define (send-sldb-activation)
   (send-outgoing-swank-message (current-swank-session)
@@ -127,6 +153,14 @@
               (display-condition condition port))))))))
 
 (define $sldb-condition-punter (make-fluid #f))
+
+(define (with-sldb-condition-punter punter thunk)
+  ((call-with-current-continuation
+     (lambda (k)
+       (lambda ()
+         (let-fluid $sldb-condition-punter
+             (lambda () (k punter))
+           thunk))))))
 
 (define (swank:sldb-break-with-default-debugger)
   ((fluid $sldb-condition-punter))

@@ -73,20 +73,28 @@
           (eval (read port) (structure-package swank-rpc)))))
 (user)
 
-(config '(run (define-structure slime48
-                  (export make-slime48-world
-                          spawn-slime48-session
-                          spawn-slime48-tcp-server
-                          )
+(config '(run (define-interface slime48-interface
+                (export
+                  make-slime48-world
+                  spawn-slime48-session
+                  serve-one-slime48-session
+                  spawn-slime48-tcp-server
+                  ))))
+
+(config '(run (define-structure slime48 slime48-interface
                 (open scheme
                       receiving
                       srfi-2            ;and-let*
+                      threads
+                      threads-internal
+                      placeholders
                       (subset i/o (force-output))
                       (subset i/o-internal
                               (call-with-current-output-port
                                call-with-current-input-port
                                periodically-force-output!))
                       string-i/o
+                      silly             ;reverse-list->string
                       restarting
                       handle
                       simple-conditions
@@ -101,12 +109,12 @@
                       (subset disclosers (location-name))
                       swank-structures
                       config-package
-                      (subset root-scheduler (scheme-exit-now))
-                      swank-quitting
                       swank-worlds
+                      swank-sessions
                       swank-i/o
                       swank-tcp-servers
                       swank-sldb
+                      swank-logging
                       )
                 (optimize auto-integrate)
                 ;; Not sure whether the =slime48/ is necessary.
@@ -120,11 +128,6 @@
             (values 'SLIME48-TCP-SERVER 'SPAWN-SLIME48-TCP-SERVER)))
     (lambda (name spawner)
       (in 'SLIME48
-          `(RUN (BEGIN
-                  (DEFINE SLIME48-WORLD
-                    (MAKE-SLIME48-WORLD
-                     ;; This is an ugly hack to make SLIME48 start up
-                     ;; in the command processor's user environment.
-                     ',(user interaction-environment)))
-                  (DEFINE ,name
-                    (,spawner SLIME48-WORLD ,@port-opt))))))))
+          `(RUN (BEGIN (DEFINE SLIME48-WORLD (MAKE-SLIME48-WORLD))
+                       (DEFINE ,name
+                         (,spawner SLIME48-WORLD ,@port-opt))))))))

@@ -80,12 +80,10 @@
 
 (define-structure swank-tcp-servers swank-tcp-servers-interface
   (open scheme
-        define-record-type*
         receiving
         sockets
         threads
         (subset threads-internal (terminate-thread!))
-        placeholders
         handle
         simple-signals
         simple-conditions
@@ -93,10 +91,7 @@
         bitwise
         (subset i/o (write-string read-block force-output))
         (subset string-i/o (read-from-string write-to-string))
-        swank-worlds
         swank-sessions
-        swank-sldb
-        swank-i/o
         swank-logging
         )
   (optimize auto-integrate)
@@ -113,8 +108,7 @@
 ;;; ----------------
 ;;; Swank RPC implementations
 
-(define-structures ((swank-general-rpc swank-general-rpc-interface)
-                    (swank-quitting (export with-swank-quitter)))
+(define-structure swank-general-rpc swank-general-rpc-interface
   (open scheme
         fluids
         (subset posix-files (working-directory

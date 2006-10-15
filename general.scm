@@ -18,14 +18,9 @@
               :PROMPT "(user)")
     :VERSION ,(or (swank-version) 'NIL)))
 
-(define $swank-quitter
-  (make-fluid terminate-current-swank-session))
-
-(define (with-swank-quitter quitter thunk)
-  (let-fluid $swank-quitter quitter thunk))
-
 (define (swank:quit-lisp)
-  ((fluid $swank-quitter)))
+  (disconnect-swank-session (current-swank-session))
+  'nil)
 
 (define (swank:default-directory)
   (working-directory))

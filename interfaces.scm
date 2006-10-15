@@ -30,6 +30,10 @@
           swank-session-world
           swank-session-id
 
+          connect-swank-session
+          disconnect-swank-session
+          swank-session-connected?
+
           ;; Sending & receiving messages to & from the session's
           ;; controller.
           send-incoming-swank-message
@@ -53,7 +57,9 @@
           walk-swank-session-level-threads
           swank-session-level-thread-count
           swank-thread-for-id
+          call-in-swank-session-repl
 
+          with-swank-session
           current-swank-session
           current-swank-world
           current-swank-return-tag
@@ -70,12 +76,7 @@
 
 (define-interface swank-tcp-servers-interface
   (export
-    make-one-shot-swank-tcp-server
-    spawn-swank-tcp-server
-    close-swank-tcp-server
-    swank-tcp-server?
-    swank-tcp-server-world
-    swank-tcp-server-port-number
+    make-swank-tcp-server
     encode-swank-message
     decode-swank-message
     ))
