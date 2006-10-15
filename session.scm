@@ -261,31 +261,60 @@
 ;++ **SWANK-EVAL, EVAL-IN-RPC-ENV
 
 (define (swank-eval form package-id return-tag session)
-  (call-with-exiting-restarter 'abort
-      ;++ This message seems wrong; "Abort SLIME evaluation.", perhaps?
-      "Abort handling SLIME request."
-    (lambda (r)
-      ;; The package system sentinel must be invoked before any
-      ;; possible environment operations.
-      (package-system-sentinel)
+  ;; The package system sentinel must be invoked before any possible
+  ;; environment operations.
+  (package-system-sentinel)
+  (with-swank-evaluation session return-tag
+    (lambda (result-cell)
+      (*swank-eval form package-id session result-cell))))
+
+(define (with-swank-evaluation session return-tag body)
+  (call-with-current-continuation
+    (lambda (escape)
       (let ((result-cell (make-cell '(:ABORT)))
             (already-returned? (make-cell #f)))
-        (let-fluids $swank-return-tag return-tag
-                    $swank-rpc-aborter r
+        (with-swank-abort-restarter result-cell escape
           (lambda ()
-            (dynamic-wind
-              values
+            (let-fluid $swank-return-tag return-tag
               (lambda ()
-                (*swank-eval form package-id session result-cell))
-              (lambda ()
-                (if (cell-ref already-returned?)
-                    (warn
-                     "ignoring second return from SLIME evaluation"
-                     return-tag)
-                    (begin (cell-set! already-returned? #t)
-                           (send-outgoing-swank-message session
-                             `(:RETURN ,(cell-ref result-cell)
-                                       ,return-tag))))))))))))
+                (dynamic-wind
+                  values                ;++ Guard against re-entrance?
+                  (lambda ()
+                    (body result-cell))
+                  (lambda ()
+                    (swank-return result-cell
+                                  already-returned?
+                                  return-tag
+                                  session)))))))))))
+
+(define (with-swank-abort-restarter result-cell escape body)
+  (call-with-interactive-restarter
+      'ABORT     ;++ Should this perhaps be ABORT-REQUEST or something?
+      "Abort SLIME request."
+      (lambda format+arguments          ;Invoker
+        (cell-set!
+         result-cell
+         (cond ((pair? format+arguments)
+                (apply swank-log format+arguments)
+                `(:ABORT ,(apply format #f format+arguments)))
+               (else
+                '(:ABORT))))
+        (escape))
+      (lambda ()                        ;Interactor
+        (values))
+    (lambda (r)
+      (let-fluid $swank-rpc-aborter r
+        body))))
+
+(define (swank-return result-cell already-returned? return-tag session)
+  (cond ((cell-ref already-returned?)
+         (warn "ignoring second return from SLIME request"
+               return-tag))
+        (else
+         (cell-set! already-returned? #t)
+         (send-outgoing-swank-message session
+           `(:RETURN ,(cell-ref result-cell)
+                     ,return-tag)))))
 
 (define (*swank-eval form package-id session result-cell)
   (cond ((eq? package-id 'nil)
@@ -327,8 +356,7 @@
 
 (define $swank-rpc-aborter (make-fluid #f))
 (define (abort-swank-rpc . why)
-  (if (pair? why) (apply swank-log why))
-  (restart (fluid $swank-rpc-aborter)))
+  (apply restart (fluid $swank-rpc-aborter) why))
 
 (define (maybe-read-from-string string)
   (call-with-current-continuation

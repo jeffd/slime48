@@ -41,6 +41,7 @@
         handle
         restarting
         restarting-hooks
+        formats
         (subset string-i/o (read-from-string))
         (subset i/o (force-output))
         continuation-data-type
