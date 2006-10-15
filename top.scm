@@ -24,17 +24,14 @@
       server)))
 
 (define (make-slime48-world)
-  (receive (scratch config rpc)
-           (make-swank-envs scheme module-system
-                            built-in-structures
-                            swank-rpc)
-    (make-swank-world scratch
-                      ;; Use the existing config package, which has all
-                      ;; structures in Scheme48's image, not just the
-                      ;; statically linked ones plus the Swank ones.
-                      (config-package)
-                      rpc
-                      'slime48)))
+  (make-swank-world (make-swank-scratch-package (list scheme)
+                                                (list scheme))
+                    ;; Use the existing config package, which has all
+                    ;; structures in Scheme48's image, not just the
+                    ;; statically linked ones plus the Swank ones.
+                    (config-package)
+                    (make-swank-rpc-package scheme swank-rpc)
+                    'SLIME48))
 
 (define slime48-session-wrapper
   (lambda (session-placeholder body)

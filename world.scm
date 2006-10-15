@@ -56,36 +56,35 @@
 ;;; ----------------
 ;;; Environment initialization
 
-(define (make-swank-envs scheme config-lang built-in rpcs)
-  (let* ((tower (make-reflective-tower eval (list scheme) 'scheme))
-         ;; The second argument to MAKE-SIMPLE-PACKAGE is #T to specify
-         ;; that the package is unstable, i.e. code can be loaded into
-         ;; it dynamically; it doesn't have statically affixed code.
-         (scratch-env (make-simple-package (list scheme) #t tower
-                                           '(scratch)))
-         (config-env (make-config-package config-lang built-in tower
-                                          '(config)))
-         (rpc-env (make-simple-package
-                   (list (make-modified-structure scheme
-                                                  ;; Nothing but QUOTE
-                                                  ;; from R5RS Scheme.
-                                                  '((expose quote)))
-                         rpcs)
-                   #t
-                   (delay (error
-                      "macro definitions are disallowed in Swank RPC"))
-                   '(swank-rpc))))
+(define (make-swank-scratch-package opens tower-opens)
+  (make-simple-package opens
+                       #t               ;unstable
+                       (make-reflective-tower eval tower-opens 'SCHEME)
+                       '(SCRATCH)))
 
-    ;; Turn off integration of primitives so that the user can redefine
-    ;; them.
-    (set-package-integrate?! scratch-env #f)
+(define (make-swank-config-package config-lang built-in tower-opens)
+  (make-config-package config-lang
+                       built-in
+                       (make-reflective-tower eval tower-opens 'SCHEME)
+                       '(CONFIG)))
 
+(define (make-swank-rpc-package scheme rpc)
+  (let ((rpc-env
+         (make-simple-package
+          (list (make-modified-structure scheme
+                                         ;; Nothing but QUOTE from
+                                         ;; R5RS Scheme.
+                                         '((expose quote)))
+                rpc)
+          #t                            ;unstable
+          (delay (error
+                  "macro definitions are disallowed in Swank RPC"))
+          '(SWANK-RPC))))
     ;; Artifacts from Maclisp (because the original SLIME is built for
     ;; elisp & Common Lisp).  I don't know whether these are really
     ;; necessary, but it's too much effort to figure out whether they
     ;; are or aren't.
     ;++ Much more important: is NIL punned as false & ()?
-    (environment-define! rpc-env 't #t)
-    (environment-define! rpc-env 'nil #f)
-
-    (values scratch-env config-env rpc-env)))
+    (environment-define! rpc-env 'T #t)
+    (environment-define! rpc-env 'NIL #f)
+    rpc-env))

@@ -19,7 +19,9 @@
           swank-world-package-names
           find-structure-in-swank-world
           find-package-in-swank-world
-          make-swank-envs
+          make-swank-scratch-package
+          make-swank-config-package
+          make-swank-rpc-package
           ))
 
 (define-interface swank-sessions-interface
