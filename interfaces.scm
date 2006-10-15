@@ -129,6 +129,8 @@
 (define-interface swank-sldb-interface
   (export with-sldb-handler
           sldb-condition-handler
+          send-sldb-activation
+          send-sldb-return
           ))
 
 (define-interface swank-sldb-rpc-interface
