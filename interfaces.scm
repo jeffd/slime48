@@ -66,7 +66,6 @@
 (define-interface swank-i/o-interface
   (export make-swank-output-port
           make-swank-input-port
-          make-swank-tcp-output-port
           ))
 
 (define-interface swank-tcp-servers-interface
