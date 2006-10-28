@@ -35,7 +35,9 @@
         (package-id (if (string? package-spec)
                         (read-from-string package-spec)
                         package-spec)))
-    (cond ((find-package-in-swank-world package-id world)
+    (cond ((or (find-package-in-swank-world package-id world)
+               (and (eq? package-spec 'NIL)
+                    (interaction-environment)))
            => (lambda (package)
                 (let ((completions
                        (compute-completions prefix-string package
