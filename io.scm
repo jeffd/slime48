@@ -35,8 +35,8 @@
 (define (empty-swank-output-buffer port)
   (let* ((size (provisional-port-index port))
          (string (make-string size)))
-    (copy-bytes! (port-buffer port) 0
-                 string             0 size)
+    (attempt-copy-bytes! (port-buffer port) 0
+                         string             0 size)
     (provisional-set-port-index! port 0)
     (if (maybe-commit)
         (begin (send-outgoing-swank-message
