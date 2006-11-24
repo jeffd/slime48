@@ -49,6 +49,8 @@
         threads threads-internal
         scheduler
         queues
+        enumerated
+        (subset architecture (interrupt))
         (subset environments (with-interaction-environment
                               set-interaction-environment!))
         packages

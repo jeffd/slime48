@@ -151,11 +151,9 @@
            (eval-in-repl-thread form package-id return-tag session)
            (eval-in-worker-thread form package-id return-tag session)))
       ((:EMACS-INTERRUPT thread-id)
-       (cond ((swank-thread-for-id thread-id session)
-              => interrupt-swank-thread)
-             (else
-              (warn "no such thread in session to interrupt"
-                    message session))))
+       (interrupt-swank-session session
+                                (or (swank-thread-for-id thread-id session)
+                                    (swank-session-repl-thread session))))
       ((:EMACS-RETURN thread-id tag value)
        (error "Swank :EMACS-RETURN message unimplemented"
               message))
@@ -181,14 +179,16 @@
        (exact? obj)
        (<= 0 obj)))
 
-(define (interrupt-swank-thread thread)
-  (interrupt-thread thread
-    (lambda args
-      (with-exiting-restarter 'continue "Continue from breakpoint."
-        (lambda ()
-          (apply signal 'breakpoint "Swank user interrupt"
-                 args)))
-      (apply values args))))
+;++ Careful!  We must be sure that the scheduler handles events
+;++ according to SWANK-EVENT-HANDLER below, so that it can handle a
+;++ slightly different interrupt event from the usual form, which has
+;++ no thread parameter.
+
+(define (interrupt-swank-session session thread)
+  (schedule-event (swank-session-scheduler-thread session)
+                  (enum event-type INTERRUPT)
+                  (enum interrupt KEYBOARD)
+                  thread))
 
 (define-swank-session-slot swank-input-tag
   set-swank-input-tag!
@@ -698,6 +698,19 @@
              (error "non-Swank thread running on a level"
                     thread level)))
        #t)
+      ((INTERRUPT type thread)
+       (if unwinding?
+           (warn "interrupt while unwinding level's threads"
+                 level
+                 type
+                 thread))
+       (interrupt-thread thread
+         (let ((thunk
+                (push-swank-interrupt-level level type thread)))
+           (lambda vals
+             (thunk)
+             (apply values vals))))
+       #t)
       ((DEADLOCK)
        (if unwinding?
            (warn "deadlock while unwinding level's threads"
@@ -705,6 +718,25 @@
        (signal 'deadlock)
        #t)
       (else #f))))
+
+(define (push-swank-interrupt-level level type thread)
+  (let ((condition (make-condition 'INTERRUPT (list type)))
+        (winder (swank-interrupt-winder))
+        (unwinder (swank-interrupt-unwinder)))
+    (if (not (and winder unwinder))
+        (signal-condition condition)
+        (*push-swank-level level #f condition thread
+                           winder unwinder))))
+
+(define-swank-session-slot swank-interrupt-winder
+  set-swank-interrupt-winder!
+  modify-swank-interrupt-winder!
+  #f)
+
+(define-swank-session-slot swank-interrupt-unwinder
+  set-swank-interrupt-unwinder!
+  modify-swank-interrupt-unwinder!
+  #f)
 
 (define (swank-waiter level unwinding?)
   (lambda ()

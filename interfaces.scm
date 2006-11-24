@@ -41,8 +41,6 @@
           abort-swank-rpc                  ; ditto
           receive-outgoing-swank-message   ; for Swank/Emacs interface
 
-          interrupt-swank-thread
-
           request-swank-input           ; random
 
           make-swank-session-slot
@@ -67,6 +65,13 @@
           push-swank-level
           pop-swank-level
           terminate-current-swank-session
+
+          swank-interrupt-winder
+          set-swank-interrupt-winder!
+          modify-swank-interrupt-winder!
+          swank-interrupt-unwinder
+          set-swank-interrupt-unwinder!
+          modify-swank-interrupt-unwinder!
           ))
 
 (define-interface swank-i/o-interface

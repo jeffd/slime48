@@ -86,7 +86,11 @@
         (lambda ()
           (with-slime48-port-redirection session-placeholder
             (lambda ()
-              (spawn-swank-session world values values))))))))
+              (spawn-swank-session world
+                (lambda ()
+                  (set-swank-interrupt-winder! send-sldb-activation)
+                  (set-swank-interrupt-unwinder! send-sldb-return))
+                values))))))))
 
 (define (wrap-debugger-attacher procedure)
   (let ((spawn (spawner-on-current-scheduler)))
