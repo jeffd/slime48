@@ -195,39 +195,73 @@
   modify-swank-input-tag!
   0)
 
+;;; The :READ-STRING and :READ-ABORTED messages have a required
+;;; `thread' argument for no purpose I can discern.  Always passing T
+;;; seems to work.
+
 (define (request-swank-input session)
-  (let* ((placeholder (make-placeholder))
-         (lock (swank-session-input-request-lock session))
-         (tag (dynamic-wind
-                (lambda () (obtain-lock lock))
-                (lambda ()
-                  (let ((tag (swank-input-tag)))
-                    (set-swank-input-tag! (+ tag 1))
-                    (table-set! (swank-session-input-placeholders
-                                 session)
-                                tag
-                                placeholder)
-                    tag))
-                (lambda () (release-lock lock)))))
-    (send-outgoing-swank-message session
-      `(:READ-STRING T     ; This must not be nil.  I don't know why.
-                     ,tag))
-    (placeholder-value placeholder)))
+  (receive (tag placeholder)
+           (new-swank-input-tag session)
+    (send-outgoing-swank-message session `(:READ-STRING T ,tag))
+    (with-handler (lambda (condition propagate)
+                    ;** Do not fail to propagate this condition!
+                    (if (termination? condition)
+                        (abort-swank-input tag session))
+                    (propagate))
+      (lambda ()
+        (placeholder-value placeholder)))))
+
+;++ The thread system sends this when terminating a thread.  This is
+;++ cheesy and fragile; it would be nice if the THREADS-INTERNAL
+;++ structure exported this predicate, or provided a safer mechanism
+;++ for working with it.
+
+(define termination? (condition-predicate 'TERMINATE))
+
+(define (new-swank-input-tag session)
+  (with-swank-session-input-operation session
+    (lambda (table)
+      (let ((tag (let ((tag (swank-input-tag)))
+                   (set-swank-input-tag! (+ tag 1))
+                   tag))
+            (placeholder (make-placeholder)))
+        (table-set! table tag placeholder)
+        (values tag placeholder)))))
+
+(define (abort-swank-input tag session)
+  (send-outgoing-swank-message session `(:READ-ABORTED T ,tag))
+  (with-swank-session-input-operation session
+    (lambda (table)
+      (table-set! table tag #f))))
 
 (define (return-swank-input tag value session)
-  (let ((lock (swank-session-input-request-lock session)))
-    (dynamic-wind
-      (lambda () (obtain-lock lock))
-      (lambda ()
-        (let ((table (swank-session-input-placeholders session)))
-          (cond ((table-ref table tag)
-                 => (lambda (placeholder)
-                      (placeholder-set! placeholder value)
-                      (table-set! table tag #f)))
-                (else
-                 (warn "no such Swank input tag returned to from Emacs"
-                       tag value session)))))
-      (lambda () (release-lock lock)))))
+  (with-swank-session-input-operation session
+    (lambda (table)
+      (cond ((table-ref table tag)
+             => (lambda (placeholder)
+                  (placeholder-set! placeholder value)
+                  (table-set! table tag #f)))
+            (else
+             (warn "no such Swank input request tag"
+                   tag
+                   value
+                   session))))))
+
+;;; I *think* that if all I/O goes through the Swank input port (in
+;;; io.scm), all this should be serialized already, so that the lock is
+;;; unnecessary.  But I could be wrong, so just to be on the safe side
+;;; I'll keep the lock here.
+;;;
+;;; (Note that if the access is *not* serialized through the port, then
+;;; we'll encounter other problems, because slime.el assumes that the
+;;; REPL read requests and aborts come in a LIFO order.)
+
+(define (with-swank-session-input-operation session receiver)
+  (let ((lock (swank-session-input-request-lock session))
+        (table (swank-session-input-placeholders session)))
+    (dynamic-wind (lambda () (obtain-lock lock))
+                  (lambda () (receiver table))
+                  (lambda () (release-lock lock)))))
 
 
 
