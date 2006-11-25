@@ -48,7 +48,9 @@ file:
                (lambda ()
                  (if (and (boundp 'scheme48-package)
                           scheme48-package)
-                     (setq slime-buffer-package scheme48-package)))))
+                     (setq slime-buffer-package
+                           (with-output-to-string
+                             (princ scheme48-package)))))))
 
 ** Starting SLIME48
 
