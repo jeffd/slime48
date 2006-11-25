@@ -30,6 +30,28 @@
   ;++ implement compound completions
   (swank:simple-completions prefix-string package-spec))
 
+(define (swank:completions-for-keyword operator prefix arg-indices)
+  operator arg-indices                  ;ignore
+  (swank:simple-completions prefix 'NIL))
+
+(define (swank:completions-for-character prefix)
+  (let ((completion?
+         (make-completion-predicate prefix string-prefix?)))
+    (let loop ((names known-char-names)
+               (completions '()))
+      (if (null? names)
+          (list completions
+                (longest-common-prefix completions))
+          (loop (cdr names)
+                (if (completion? (car names))
+                    (cons (car names) completions)
+                    completions))))))
+
+;++ This is horrid.  But Scheme48's reader has these hard-coded, and
+;++ exports no name for a list of them.
+
+(define known-char-names '("newline" "space"))
+
 (define (swank:simple-completions prefix-string package-spec)
   (let ((world (current-swank-world))
         (package-id (if (string? package-spec)

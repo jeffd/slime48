@@ -199,6 +199,8 @@
           swank:simple-completions
           swank:fuzzy-completions
           swank:fuzzy-completion-selected
+          swank:completions-for-keyword
+          swank:completions-for-character
           swank:list-all-package-names
           ))
 
