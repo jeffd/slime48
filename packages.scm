@@ -42,7 +42,7 @@
         restarting
         restarting-hooks
         formats
-        (subset string-i/o (read-from-string))
+        string-i/o
         (subset i/o (force-output))
         continuation-data-type
         fluids fluids-internal
@@ -51,6 +51,8 @@
         queues
         (subset environments (with-interaction-environment
                               set-interaction-environment!))
+        packages
+        packages-internal
         (subset package-mutation (package-system-sentinel))
         swank-logging
         swank-worlds

@@ -326,11 +326,12 @@
               package-id)
           (swank-session-world session))
          => (lambda (env)
-              (receive (value new-env)
-                       (**swank-eval form env session)
-                (if (not (eq? new-env env))
-                    (set-interaction-environment! new-env))
-                (cell-set! result-cell `(:OK ,value)))))
+              (cell-set! result-cell
+                         `(:OK ,(with-interaction-environment* env
+                                    (lambda (env*)
+                                      (report-package-change session env*))
+                                  (lambda ()
+                                    (eval-in-rpc-env form session)))))))
         ;++ What to do if we can't find the package?  Just use the
         ;++ interaction environment?
         (else
@@ -340,13 +341,35 @@
                     "interaction environment in Swank evaluation"
                     form))))
 
-(define (**swank-eval form env session)
-  (with-interaction-environment env
-    (lambda ()
-      (let ((value (eval-in-rpc-env form session)))
-        ;** Don't beta-reduce!  INTERACTION-ENVIRONMENT must be called
-        ;** _after_ the form is evaluated.
-        (values value (interaction-environment))))))
+(define (with-interaction-environment* env if-change thunk)
+  ;** Notice the doubled bracket here.
+  ((with-interaction-environment env
+     (lambda ()
+       (receive results (thunk)
+         ;; Check for any changes THUNK effected upon the interaction
+         ;; environment.
+         (let ((env* (interaction-environment)))
+           (if (eq? env env*)
+               (lambda ()
+                 ;; If there were no changes, let it be reverted by
+                 ;; WITH-INTERACTION-ENVIRONMENT to the original.
+                 (apply values results))
+               (lambda ()
+                 ;; But if THUNK did change it, then reflect the change
+                 ;; past the WITH-INTERACTION-ENVIRONMENT.
+                 (set-interaction-environment! env*)
+                 (if-change env*)
+                 (apply values results)))))))))
+
+(define (report-package-change session package)
+  (send-outgoing-swank-message (current-swank-session)
+    (let ((name
+           (hybrid-write-to-string
+            (or (package-name package)
+                (package-uid package)))))
+      ;; No package nicknames in Scheme48, so just use the full name
+      ;; for the identifier and the prompt string.
+      `(:NEW-PACKAGE ,name ,name))))
 
 (define (eval-in-rpc-env form session)
   (eval form (swank-world-rpc-env (swank-session-world session))))

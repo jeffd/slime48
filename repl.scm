@@ -176,9 +176,10 @@
                                     package)))
                       (warn "package identification mismatch"
                             id package))
-                  (list id (hybrid-write-to-string
-                            (or name
-                                (package-uid package)))))))
+                  (list (hybrid-write-to-string id)
+                        (hybrid-write-to-string
+                         (or name
+                             (package-uid package)))))))
           (else (abort-swank-rpc
                  "(world ~S, session ~S, SET-PACKAGE) ~A: ~A"
                  (swank-world-id world)
