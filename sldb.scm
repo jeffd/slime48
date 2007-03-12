@@ -274,7 +274,7 @@
                  ((generated? name)
                   ;; Take the symbol of the parent; we separate the id
                   ;; out here manually.
-                  (name->symbol (generated-name name)))
+                  (symbol->string (name->symbol (generated-name name))))
                  (else                  ; bizarre name
                   (hybrid-write-to-string name)))
     :ID ,(if (generated? name)
