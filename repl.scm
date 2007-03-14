@@ -52,9 +52,11 @@
         (cond ((repl-eval-string string)
                => (lambda (vals)
                     (list (string-output-port-output port)
-                          (delimited-object-list-string vals
-                                                        hybrid-write
-                                                        newline))))
+                          (if (null? vals)
+                              "; No value"
+                              (delimited-object-list-string vals
+                                                            hybrid-write
+                                                            newline)))))
               (else (list "" "; Nothing to evaluate")))))))
 
 (define (swank:pprint-eval string)
