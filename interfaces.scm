@@ -173,6 +173,9 @@
 
 (define-interface swank-inspector-rpc-interface
   (export swank:init-inspector
+          :dwim-mode                    ;++ Keyword argument crock for
+          :eval                         ;++ SWANK:INIT-INSPECTOR.
+          :reset
           swank:inspector-reinspect
           swank:inspect-nth-part
           swank:inspector-nth-part

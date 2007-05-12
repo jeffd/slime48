@@ -57,17 +57,34 @@
   (multiple-values list)
   ())
 
-(define (swank:init-inspector exp-string . reset?-option)
-  (cond ((repl-eval-string exp-string)
-         => (lambda (results)
-              (inspect-results results
-                               (and (pair? reset?-option)
-                                    (car reset?-option)))))
-        (else
-         (abort-swank-rpc
-          "(session ~S, INSPECT) No expression in string: ~S"
-          (swank-session-id (current-swank-session))
-          exp-string))))
+(define :reset ':reset)
+(define :eval ':eval)
+(define :dwim-mode ':dwim-mode)
+
+(define (swank:init-inspector datum . options)
+  (inspect-results
+   (cond ((or (plist-get options :eval #t)
+              ;; `DWIM mode' means that we do something random
+              ;; depending on what kind of object it is.  For Scheme,
+              ;; let's just evaluate it.
+              (plist-get options :dwim-mode #t))
+          (or (repl-eval-string datum)
+              (abort-swank-rpc
+               "(session ~S, INSPECT) No expression in string: ~S"
+               (swank-session-id (current-swank-session))
+               datum)))
+         (else
+          (list datum)))
+   (plist-get options :reset #t)))
+
+(define (plist-get plist key default)
+  (let loop ((plist plist))
+    (if (and (pair? plist)
+             (pair? (cdr plist)))
+        (if (eq? (car plist) key)
+            (cadr plist)
+            (loop (cdr plist)))
+        default)))
 
 (define (swank:inspector-nth-part n)
   (xvector-ref (current-inspector-parts) n))
