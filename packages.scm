@@ -121,6 +121,7 @@
                              set-working-directory!))
         (subset sockets (get-host-name))
         swank-sessions
+        swank-versions
         )
   (optimize auto-integrate)
   (files general))

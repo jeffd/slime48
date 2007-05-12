@@ -6,6 +6,28 @@
 ;;; This code is written by Taylor Campbell and placed in the Public
 ;;; Domain.  All warranties are disclaimed.
 
+(config
+ '(run
+   (define-structure swank-versions (export swank-version)
+     (open scheme handle i/o filenames)
+     (begin
+       (define (swank-version) the-swank-version)
+       (define the-swank-version
+         (call-with-current-continuation
+           (lambda (exit)
+             (with-handler (lambda (condition propagate)
+                             condition propagate ;ignore
+                             (exit #f))
+               (lambda ()
+                 (call-with-input-file (translate "=slime48/ChangeLog")
+                   (lambda (port)
+                     (let* ((date-length (string-length "YYYY-MM-DD"))
+                            (date (make-string date-length))
+                            (count
+                             (read-block date 0 date-length port)))
+                       (and (= count date-length)
+                            date)))))))))))))
+
 (config '(load "=slime48/defrectype.scm"
                "=slime48/interfaces.scm"
                "=slime48/packages.scm"))

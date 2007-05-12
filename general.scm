@@ -16,7 +16,7 @@
     :FEATURES ()
     :PACKAGE (:NAME "(user)"
               :PROMPT "(user)")
-    ))
+    :VERSION ,(or (swank-version) 'NIL)))
 
 (define $swank-quitter
   (make-fluid terminate-current-swank-session))
