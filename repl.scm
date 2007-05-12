@@ -73,25 +73,41 @@
          (delimited-object-list-string results p ""))))
 
 (define (swank:listener-eval string)
+  (define (send message)
+    (send-outgoing-swank-message (current-swank-session) message))
   (cond ((repl-eval-string string)
-         => (lambda (results)
-              (if (swank-repl-presentations?)
-                  (repl-present results)
-                  `(:VALUES ,(map shared-write-to-string results)))))
-        (else '(:SUPPRESS-OUTPUT))))
+         => listener-eval-results)
+        (else
+         (send-outgoing-swank-message (current-swank-session)
+           '(:WRITE-STRING "; Nothing to evaluate"
+                           NIL
+                           :REPL-RESULT))))
+  'NIL)
 
-(define (repl-present results)
-  (let ((table (swank-repl-presentations)))
-    (reduce ((list* result results))
-        ((id (swank-repl-presentation-id))
-         (presentations '()))
-      (begin (weak-table-set! table id (canonicalize-false result))
-             (values (+ id 1)
-                     `((,(shared-write-to-string result)
-                        . ,id)
-                       ,@presentations)))
-      (begin (set-swank-repl-presentation-id! id)
-             `(:PRESENT ,(reverse presentations))))))
+(define (listener-eval-results results)
+  (if (null? results)
+      (send-outgoing-swank-message (current-swank-session)
+        '(:WRITE-STRING "; No value" NIL :REPL-RESULT))
+      (for-each (let ((record (repl-result-recorder)))
+                  (lambda (result)
+                    (send-outgoing-swank-message (current-swank-session)
+                      `(:WRITE-STRING ,(shared-write-to-string result)
+                                      ,(record result)
+                                      :REPL-RESULT))))
+                results)))
+
+(define (repl-result-recorder)
+  (cond ((swank-repl-presentations)
+         => (lambda (presentations)
+              (lambda (datum)
+                (let ((id (swank-repl-presentation-id)))
+                  (set-swank-repl-presentation-id! (+ id 1))
+                  (weak-table-set! presentations id datum)
+                  id))))
+        (else
+         (lambda (datum)
+           datum                        ;ignore
+           'NIL))))
 
 (define-swank-session-slot swank-repl-presentation-id
   set-swank-repl-presentation-id!
