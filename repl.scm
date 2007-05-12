@@ -103,36 +103,31 @@
   modify-swank-repl-presentations!
   #f)
 
-(define-swank-session-slot swank-repl-presentations?
-  set-swank-repl-presentations?!
-  modify-swank-repl-presentations?!
-  #f)
+(define (swank-repl-presentations?)
+  (if (swank-repl-presentations)
+      #t
+      #f))
 
 (define (enable-swank-repl-presentations)
-  (set-swank-repl-presentations?! #t)
   (set-swank-repl-presentations! (make-weak-table)))
+
 (define (disable-swank-repl-presentations)
-  (set-swank-repl-presentations?! #f)
   (set-swank-repl-presentations! #f))
+
 (define (toggle-swank-repl-presentations)
-  (modify-swank-repl-presentations?!
-   (lambda (x)
-     (cond (x
-            (set-swank-repl-presentations! #f)
-            #f)
-           (else
-            (set-swank-repl-presentations! (make-weak-table))
-            #t)))))
+  (modify-swank-repl-presentations!
+   (lambda (presentations)
+     (if presentations
+         #f
+         (make-weak-table)))))
 
 (define (swank:get-repl-result id)
-  (cond ((not (swank-repl-presentations?))
-         (error "Swank REPL presentations disabled"
-                `(GET-REPL-RESULT ,id)))
-        ((weak-table-ref (swank-repl-presentations) id)
+  (cond ((let ((presentations (swank-repl-presentations)))
+           (and presentations
+                (weak-table-ref presentations id)))
          => decanonicalize-false)
         (else
-         (error "Swank REPL presentation no longer exists"
-                `(GET-REPL-RESULT ,id)))))
+         (abort-swank-rpc "No such REPL result: ~S" id))))
 
 (define canonicalize-false)
 (define decanonicalize-false)
@@ -147,9 +142,11 @@
               x))))
 
 (define (swank:clear-repl-results)
-  (set-swank-repl-presentations! (if (swank-repl-presentations?)
-                                     (make-weak-table)
-                                     #f))
+  (modify-swank-repl-presentations!
+   (lambda (presentations)
+     (if presentations
+         (make-weak-table)
+         #f)))
   't)
 
 (define (delimited-object-list-string vals write delimiter)
