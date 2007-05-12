@@ -296,7 +296,8 @@
          result-cell
          (cond ((pair? format+arguments)
                 (apply swank-log format+arguments)
-                `(:ABORT ,(apply format #f format+arguments)))
+                ;; `(:ABORT ,(apply format #f format+arguments))
+                '(:ABORT))
                (else
                 '(:ABORT))))
         (escape))
