@@ -534,7 +534,7 @@
           (with-restarter-invoker-hook swank-restarter-invoker-hook
             (lambda ()
               (with-interaction-environment
-                  (swank-world-scratch-env
+                  (swank-world-user-env
                    (swank-session-world session))
                 get-dynamic-env))))
          (thread

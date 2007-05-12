@@ -14,8 +14,8 @@
                           :VERSION "1.3")
     :MACHINE (:INSTANCE ,(get-host-name))
     :FEATURES ()
-    :PACKAGE (:NAME "(scratch)"
-              :PROMPT "(scratch)")
+    :PACKAGE (:NAME "(user)"
+              :PROMPT "(user)")
     ))
 
 (define $swank-quitter

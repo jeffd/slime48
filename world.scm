@@ -9,7 +9,7 @@
 ;++ What else belongs here?  This module is pretty empty...
 
 (define-record-type* swank-world
-  (make-swank-world scratch-env         ; user scratch environment
+  (make-swank-world user-env            ; user scratch environment
                     config-env          ; module language environment
                     rpc-env             ; Swank RPC binding environment
                     id)
@@ -32,7 +32,7 @@
   (config-structure-names (swank-world-config-env world)))
 
 (define (swank-world-package-names world)
-  (append '((scratch) (config) (swank-rpc))
+  (append '((user) (config) (swank-rpc))
           (config-package-names (swank-world-config-env world))))
 
 (define (find-structure-in-swank-world id world)
@@ -43,7 +43,7 @@
               (symbol? (car id))
               (null? (cdr id)))
          (case (car id)
-           ((scratch)   (swank-world-scratch-env world))
+           ((user)      (swank-world-user-env    world))
            ((config)    (swank-world-config-env  world))
            ;; Is access to the RPC environment useful?
            ((swank-rpc) (swank-world-rpc-env     world))
@@ -56,11 +56,11 @@
 ;;; ----------------
 ;;; Environment initialization
 
-(define (make-swank-scratch-package opens tower-opens)
+(define (make-swank-user-package opens tower-opens)
   (make-simple-package opens
                        #t               ;unstable
                        (make-reflective-tower eval tower-opens 'SCHEME)
-                       '(SCRATCH)))
+                       '(USER)))
 
 (define (make-swank-config-package config-lang built-in tower-opens)
   (make-config-package config-lang

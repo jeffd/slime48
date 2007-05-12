@@ -98,6 +98,11 @@
             (values 'SLIME48-TCP-SERVER 'SPAWN-SLIME48-TCP-SERVER)))
     (lambda (name spawner)
       (in 'SLIME48
-          `(RUN (BEGIN (DEFINE SLIME48-WORLD (MAKE-SLIME48-WORLD))
-                       (DEFINE ,name
-                         (,spawner SLIME48-WORLD ,@port-opt))))))))
+          `(RUN (BEGIN
+                  (DEFINE SLIME48-WORLD
+                    (MAKE-SLIME48-WORLD
+                     ;; This is an ugly hack to make SLIME48 start up
+                     ;; in the command processor's user environment.
+                     ',(user interaction-environment)))
+                  (DEFINE ,name
+                    (,spawner SLIME48-WORLD ,@port-opt))))))))

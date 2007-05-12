@@ -23,9 +23,8 @@
       (writer (swank-tcp-server-port-number server))
       server)))
 
-(define (make-slime48-world)
-  (make-swank-world (make-swank-scratch-package (list scheme)
-                                                (list scheme))
+(define (make-slime48-world user-environment)
+  (make-swank-world user-environment
                     ;; Use the existing config package, which has all
                     ;; structures in Scheme48's image, not just the
                     ;; statically linked ones plus the Swank ones.

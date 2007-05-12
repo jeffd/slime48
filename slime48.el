@@ -72,11 +72,11 @@ True means starting SLIME48 will start a persistent SLIME48 server.")
    nil
    "swank-repl"))
 
-(defslime-repl-shortcut nil ("scratch")
+(defslime-repl-shortcut nil ("user")
   (:handler (lambda ()
               (interactive)
-              (slime-repl-set-package "(scratch)")))
-  (:one-liner "Change to the scratch package."))
+              (slime-repl-set-package "(user)")))
+  (:one-liner "Change to the user package."))
 
 (defslime-repl-shortcut nil ("config")
   (:handler (lambda ()

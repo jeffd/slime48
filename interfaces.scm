@@ -12,14 +12,14 @@
           swank-world-id
           swank-world-sessions
           next-swank-session-id
-          swank-world-scratch-env
+          swank-world-user-env
           swank-world-config-env
           swank-world-rpc-env
           swank-world-structure-names
           swank-world-package-names
           find-structure-in-swank-world
           find-package-in-swank-world
-          make-swank-scratch-package
+          make-swank-user-package
           make-swank-config-package
           make-swank-rpc-package
           ))
