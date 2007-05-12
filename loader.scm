@@ -87,6 +87,15 @@
   (map symbol->string
        (swank-world-structure-names (current-swank-world))))
 
+;;; If we ever store package descriptions on disk, this will need to
+;;; change.
+
+(define (swank:list-all-systems-known-to-asdf)
+  (swank:list-all-systems-in-central-registry))
+
+(define (swank:list-asdf-systems)
+  (swank:list-all-systems-in-central-registry))
+
 
 
 ;;; Compiler notes
