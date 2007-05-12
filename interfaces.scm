@@ -242,8 +242,8 @@
   (export swank:swank-macroexpand-1
           swank:swank-macroexpand
           swank:swank-macroexpand-all
-          swank:compiler-macroexpand
-          swank:compiler-macroexpand-1
+          swank:swank-compiler-macroexpand
+          swank:swank-compiler-macroexpand-1
           ))
 
 (define-interface swank-disassembly-rpc-interface
