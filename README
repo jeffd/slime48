@@ -76,15 +76,15 @@ bottom of this file.
 Like the Scheme48 command processor, there are three special packages
 in SLIME48 which are accessible to the user but not through any
 structures defined in the config package.  These three packages are the
-scratch package, the config package itself, and the Swank RPC package.
-The scratch package is the default initial package for SLIME48
-sessions; it corresponds with the user package of the Scheme48 command
-processor.  The config package is the same as in the Scheme48 command
-processor; that is, it contains all module definitions and the
-configuration language.  The Swank RPC package is the environment in
-which RPCs sent by Emacs are evaluated.
+user package, the config package itself, and the Swank RPC package.
+The user package is the default initial package for SLIME48 sessions;
+it corresponds with the user package of the Scheme48 command processor.
+The config package is the same as in the Scheme48 command processor;
+that is, it contains all module definitions and the configuration
+language.  The Swank RPC package is the environment in which RPCs sent
+by Emacs are evaluated.
 
-These packages are identified by the names (SCRATCH), (CONFIG), and
+These packages are identified by the names (USER), (CONFIG), and
 (SWANK-RPC).  This helps to distinguish them from bindings defined in
 the config package.  Also, the notation for the config package is
 common to SLIME48 and scheme48.el, so it is conventional to write this
@@ -92,8 +92,8 @@ line at the tops of files in the configuration language:
 
   ;;; -*- Mode: Scheme; scheme48-package: (config) -*-
 
-There are also SLIME REPL shortcuts defined for access to the scratch
-and config packages; see below.
+There are also SLIME REPL shortcuts defined for access to the user and
+config packages; see below.
 
 The Swank RPC package is most likely not useful to many users, and
 should generally be avoided.  It may vanish in a future SLIME48.
@@ -141,8 +141,8 @@ instances; they are specific to Scheme48.
 SLIME48 adds three new REPL shortcuts, which will work *only* in
 Scheme48 SLIME instances, *not* Common Lisp SLIME instances:
 
-  ,SCRATCH
-    Switches to the scratch environment, which is the initial one for
+  ,USER
+    Switches to the USER environment, which is the initial one for
     general interaction.
 
   ,CONFIG
