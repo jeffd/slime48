@@ -121,13 +121,17 @@
                 (files =slime48/top))))
 
 (define (slime48-start single-session? . port-opt)
-  (call-with-values       ;No RECEIVE in the exec language.
-      (lambda ()
-        (if single-session?
-            (values 'SLIME48-SESSION 'SPAWN-SLIME48-SESSION)
-            (values 'SLIME48-TCP-SERVER 'SPAWN-SLIME48-TCP-SERVER)))
-    (lambda (name spawner)
-      (in 'SLIME48
-          `(RUN (BEGIN (DEFINE SLIME48-WORLD (MAKE-SLIME48-WORLD))
-                       (DEFINE ,name
-                         (,spawner SLIME48-WORLD ,@port-opt))))))))
+  (in 'SLIME48
+      `(RUN
+        (BEGIN
+          (DEFINE SLIME48-WORLD
+            (MAKE-SLIME48-WORLD ',(user interaction-environment)))
+          ,@(cond (single-session?
+                   `((DEFINE SLIME48-SESSION
+                       (SPAWN-SLIME48-SESSION SLIME48-WORLD))
+                     (SERVE-ONE-SLIME48-SESSION SLIME48-SESSION
+                                                ,@port-opt)))
+                  (else
+                   `((DEFINE CLOSE-SLIME48
+                       (SPAWN-SLIME48-TCP-SERVER SLIME48-WORLD
+                                                 ,@port-opt)))))))))

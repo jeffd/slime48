@@ -65,9 +65,18 @@
       (or (not secret-key)
           (equal? secret-key (decode-swank-message in))))))
 
-(define (make-slime48-world)
-  (make-swank-world (make-swank-scratch-package (list scheme)
-                                                (list scheme))
+(define (slime48-secret-key)
+  (call-with-current-continuation
+    (lambda (abort)
+      (with-handler (lambda (condition propagate)
+                      (if (error? condition)
+                          (abort #f)
+                          (propagate)))
+        (lambda ()
+          (call-with-input-file "~/.slime-secret" read-line))))))
+
+(define (make-slime48-world user-environment)
+  (make-swank-world user-environment
                     ;; Use the existing config package, which has all
                     ;; structures in Scheme48's image, not just the
                     ;; statically linked ones plus the Swank ones.

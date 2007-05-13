@@ -589,30 +589,36 @@
 ;;; Level scheduling
 
 (define (spawn-swank-session-levels session top-winder top-unwinder)
-  (let* ((top-dynamic-env
-          (with-restarter-invoker-hook swank-restarter-invoker-hook
-            (lambda ()
-              (with-interaction-environment
-                  (swank-world-scratch-env
-                   (swank-session-world session))
-                get-dynamic-env))))
-         (thread
-          (spawn (lambda ()
-                   (dynamic-wind
-                     top-winder
-                     (lambda ()
-                       (with-handler
-                           (lambda (c punt)
-                             (swank-condition-handler c punt))
-                         (lambda ()
-                           (set-swank-session-top-dynamic-env!
-                            session
-                            top-dynamic-env)
-                           (push-top-level session))))
-                     top-unwinder))
-                 `(swank-session-scheduler
-                   ,(swank-session-id session)))))
-    (set-swank-session-scheduler-thread! session thread)))
+  (set-swank-session-top-dynamic-env!
+   session
+   (with-restarter-invoker-hook
+       (make-swank-restarter-invoker-hook session)
+     (lambda ()
+       (with-interaction-environment (swank-world-user-env
+                                      (swank-session-world session))
+         (lambda ()
+           (with-swank-session session
+             get-dynamic-env))))))
+  (set-swank-session-scheduler-thread!
+   session
+   (spawn (lambda ()
+            (with-swank-session session
+              (lambda ()
+                (dynamic-wind top-winder
+                              (lambda () (push-top-level session))
+                              top-unwinder))))
+          `(swank-session-scheduler ,(swank-session-id session)))))
+
+(define $session (make-fluid #f))
+
+(define (with-swank-session session thunk)
+  (let-fluid $session session thunk))
+
+(define (current-swank-session)
+  (fluid $session))
+
+(define (current-swank-world)
+  (swank-session-world (current-swank-session)))
 
 (define swank-condition-handler
         (lambda (c punt)
