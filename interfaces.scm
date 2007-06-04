@@ -239,6 +239,8 @@
           swank:compiler-notes-for-emacs
           swank:operate-on-system-for-emacs
           swank:list-all-systems-in-central-registry
+          swank:list-all-systems-known-to-asdf
+          swank:list-asdf-systems
           ))
 
 (define-interface swank-macro-expansion-rpc-interface
