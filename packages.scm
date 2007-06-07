@@ -131,7 +131,7 @@
   (open scheme
         receiving
         string-i/o
-        (subset i/o (write-string call-with-current-output-port))
+        i/o
         (subset i/o-internal (call-with-current-output-port))
         extended-writing
         pp

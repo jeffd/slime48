@@ -12,6 +12,10 @@
         #f
         (receive results
                  (eval exp (semi-loaded-interaction-environment))
+          ;; Force all of the expression's output before yielding a
+          ;; value, which is sent by the same mechanism as printed
+          ;; output.
+          (force-output (current-output-port))
           results))))
 
 (define (swank:interactive-eval string)
