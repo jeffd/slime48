@@ -77,8 +77,6 @@
          (delimited-object-list-string results p ""))))
 
 (define (swank:listener-eval string)
-  (define (send message)
-    (send-outgoing-swank-message (current-swank-session) message))
   (cond ((repl-eval-string string)
          => listener-eval-results)
         (else
